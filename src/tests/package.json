@@ -1,0 +1,19 @@
+{
+  "name": "honeypot-tests",
+  "version": "1.0.0",
+  "description": "Tests for honeypot nodes",
+  "scripts": {
+    "test": "node test-honeypot-login.js && node test-honeypot-ssh.js",
+    "test:login": "node test-honeypot-login.js",
+    "test:ssh": "node test-honeypot-ssh.js",
+    "test:login-only": "node test-honeypot-login.js --single",
+    "test:ssh-only": "node test-honeypot-ssh.js --single"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "puppeteer": "^21.5.0",
+    "ssh2": "^1.15.0",
+    "socket.io-client": "^4.8.1",
+    "chalk": "^4.1.2"
+  }
+}

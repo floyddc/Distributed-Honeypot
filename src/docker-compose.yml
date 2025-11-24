@@ -4,14 +4,15 @@ services:
     container_name: collector-server
     ports:
       - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/distributed-honeypot
+      - PORT=3000
+      - JWT_SECRET=supersecretkey_change_this_in_production
+      - NODE_ENV=development
+    depends_on:
+      - mongo
     networks:
       - app-network
-    healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     restart: unless-stopped
 
   mongo:
@@ -31,19 +32,27 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - COLLECTOR_SERVER_URL=http://collector-server:3000/honeypotnode1
+      - COLLECTOR_SERVER_URL=http://collector-server:3000
       - MAX_RETRIES=3
       - RETRY_DELAY=2000
     depends_on:
-      collector-server:
-        condition: service_healthy
+      - collector-server
     networks:
       - app-network
-    healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    restart: unless-stopped
+
+  honeypot-node2:
+    build: ./honeypot-node2
+    container_name: honeypot-node2
+    ports:
+      - "2222:2222"
+    environment:
+      - COLLECTOR_SERVER_URL=http://collector-server:3000
+      - SSH_PORT=2222
+    depends_on:
+      - collector-server
+    networks:
+      - app-network
     restart: unless-stopped
 
 networks:

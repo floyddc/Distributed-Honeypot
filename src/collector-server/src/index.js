@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+// app.use('/api/auth', require('./routes/authRoutes'));
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -36,8 +36,11 @@ io.on('connection', (socket) => {
     console.log('A user/honeypot connected:', socket.id);
 
     socket.on('honeypot_data', (data) => {
-        // Save to DB (omitted for brevity in this step, but we broadcast it)
-        // In real app: await Attack.create(data);
+        // Debugging (check if data are received)
+        console.log('Received honeypot data:', data); 
+        
+        // Save to DB (later)
+        // await Attack.create(data)...
 
         // Broadcast to all clients (Dashboard)
         io.emit('new_attack', data);

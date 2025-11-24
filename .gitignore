@@ -1,6 +1,9 @@
 # Dependencies
 src/node_modules/
 src/honeypot-node1/node_modules/
+src/honeypot-node2/node_modules
+src/tests/node_modules
+src/mongo-data/
 
 # Logs
 *.log
