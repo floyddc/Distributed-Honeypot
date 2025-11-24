@@ -2,12 +2,25 @@ const { Server } = require('ssh2');
 const fs = require('fs');
 const crypto = require('crypto');
 const { io } = require('socket.io-client');
+const DataBuffer = require('./utils/buffer.cjs');
 
 // Socket connection
-const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000');
+const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: Infinity
+});
+
+const buffer = new DataBuffer(100);
 
 socket.on('connect', () => {
     console.log('SSH Honeypot connected to collector server');
+    
+    // Flush buffer on connect
+    const bufferedData = buffer.flush();
+    bufferedData.forEach(data => {
+        socket.emit('honeypot_data', data);
+    });
 });
 
 socket.on('connect_error', (error) => {
@@ -61,9 +74,12 @@ const server = new Server({
 
         console.log(`SSH Auth attempt: ${ctx.username}/${ctx.password || 'key-based'} from ${clientInfo.sourceIP}`);
         
-        // Send via Socket.IO
+        // Send via Socket.IO or buffer
         if (socket.connected) {
             socket.emit('honeypot_data', authData);
+        } else {
+            buffer.add(authData);
+            console.log(`Data buffered. Buffer size: ${buffer.size()}`);
         }
 
         // Always reject authentication

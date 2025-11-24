@@ -2,9 +2,11 @@
 
 ## How to turn on/off the system
 - `docker-compose build --no-cache`
-- `docker-compose up`  to run all
+- `docker-compose up` to run all
+  - `docker-compose up -d` to run all in background.
+  - `docker-compose logs -f collector-server honeypot-node1 honeypot-node2` to see only those logs.
 - Visit http://localhost:3000 to check if the collector server is up.
-- `docker-compose down` to turn off Docker.
+- `docker-compose down` to turn off containers.
 
 ## How Honeypot-node1 works
 - Visit http://localhost:3001 to visit the fake login page.

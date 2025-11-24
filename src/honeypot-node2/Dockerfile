@@ -1,18 +1,15 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Copia i file package.json e package-lock.json
-COPY package*.json ./
+COPY utils ./utils
 
-# Installa le dipendenze
+COPY honeypot-node2/package*.json ./
+
 RUN npm install
 
-# Copia il codice sorgente
-COPY honeypot-ssh.js ./
+COPY honeypot-node2 .
 
-# Espone la porta SSH
 EXPOSE 2222
 
-# Avvia il server SSH honeypot
 CMD ["node", "honeypot-ssh.js"]

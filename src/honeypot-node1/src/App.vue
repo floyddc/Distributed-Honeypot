@@ -23,13 +23,15 @@
       <button type="submit">Login</button>
     </form>
     <p>Forgot your password? <a href="#">Reset here</a></p>
-    <small>Attempts: {{ attempts }}</small>
+    <small>Attempts: {{ attempts }} | Buffered: {{ bufferedCount }}</small>
   </div>
 </template>
 
 <script>
+import axios from 'axios'; 
+import DataBuffer from '../utils/buffer.js';
 
-import axios from 'axios'; // import because Vue uses ES Modules
+const buffer = new DataBuffer(100);
 
 async function getGeoData(ip) {
     try {
@@ -78,22 +80,37 @@ export default {
     return {
       username: '',
       password: '',
-      attempts: 0
+      attempts: 0,
+      bufferedCount: 0
     }
   },
   mounted() {
     // Initialize socket connection
     this.$socket.on('connect', () => {
-      console.log('Connected to collector server')
-    })
+      console.log('Connected to collector server');
+      const bufferedData = buffer.flush();
+      bufferedData.forEach(data => {
+        this.$socket.emit('honeypot_data', data);
+      });
+      
+      if (bufferedData.length > 0) {
+        console.log(`Flushed ${bufferedData.length} buffered items`);
+      }
+      
+      this.bufferedCount = buffer.size();
+    });
     
     this.$socket.on('connect_error', (error) => {
-      console.error('Connection error:', error)
-    })
+      console.error('Connection error:', error);
+    });
+
+    this.$socket.on('disconnect', () => {
+      console.log('Disconnected from collector - buffering data');
+    });
   },
   methods: {
     async handleSubmit() {
-      this.attempts++
+      this.attempts++;
       const publicIp = await getPublicIP();
       
       // Log attack attempt
@@ -112,23 +129,25 @@ export default {
       };
 
       try {
-        // Send via Socket.IO
+        // Send via Socket.IO or buffer
         if (this.$socket && this.$socket.connected) {
-          this.$socket.emit('honeypot_data', attackData)
-          console.log('Attack data sent via Socket.IO')
+          this.$socket.emit('honeypot_data', attackData);
+          console.log('Attack data sent via Socket.IO');
         } else {
-          console.warn('Socket not connected, data not sent')
+          buffer.add(attackData);
+          this.bufferedCount = buffer.size();
+          console.log(`Data buffered. Buffer size: ${this.bufferedCount}`);
         }
         
         // Always show "Invalid credentials"
-        alert('Invalid username or password')
+        alert('Invalid username or password');
         
         // Reset form
-        this.username = ''
-        this.password = ''
+        this.username = '';
+        this.password = '';
       } catch (error) {
-        console.error('Failed to send data to collector:', error)
-        alert('Invalid username or password')
+        console.error('Failed to send data to collector:', error);
+        alert('Invalid username or password');
       }
     }
   }
