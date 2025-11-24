@@ -27,7 +27,9 @@ services:
     restart: unless-stopped
 
   honeypot-node1:
-    build: ./honeypot-node1
+    build:
+      context: .
+      dockerfile: ./honeypot-node1/Dockerfile
     container_name: honeypot-node1
     ports:
       - "3001:3001"
@@ -42,7 +44,9 @@ services:
     restart: unless-stopped
 
   honeypot-node2:
-    build: ./honeypot-node2
+    build:
+      context: .
+      dockerfile: ./honeypot-node2/Dockerfile
     container_name: honeypot-node2
     ports:
       - "2222:2222"

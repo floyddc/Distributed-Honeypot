@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.DS_Store
+mongo-data
+.buffer-data
+*/node_modules
+*/dist
+*/.vite
+*.log
+.env.local
+.env.*.local
