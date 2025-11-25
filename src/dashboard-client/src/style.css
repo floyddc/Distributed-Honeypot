@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+    --color-cyber-black: #111827;
+    /* gray-900 */
+    --color-cyber-dark: #1f2937;
+    /* gray-800 */
+    --color-cyber-gray: #374151;
+    /* gray-700 */
+    --color-cyber-primary: #3b82f6;
+    /* blue-500 */
+    --color-cyber-secondary: #8b5cf6;
+    /* violet-500 */
+    --color-cyber-accent: #ec4899;
+    /* pink-500 */
+    --color-cyber-success: #10b981;
+    /* emerald-500 */
+    --color-cyber-warning: #f59e0b;
+    /* amber-500 */
+    --color-cyber-danger: #ef4444;
+    /* red-500 */
+
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+body {
+    @apply bg-gray-100 text-gray-900 font-sans;
+}
+
+/* Simple Card Utility */
+.glass-card {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm p-4;
+}
