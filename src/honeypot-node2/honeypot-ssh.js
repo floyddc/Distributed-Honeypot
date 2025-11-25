@@ -2,7 +2,9 @@ const { Server } = require('ssh2');
 const fs = require('fs');
 const crypto = require('crypto');
 const { io } = require('socket.io-client');
+const { getGeoData, calculateSeverity, getPublicIP } = require('./utils/helpers.cjs');
 const DataBuffer = require('./utils/buffer.cjs');
+const buffer = new DataBuffer(100);
 
 // Socket connection
 const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
@@ -10,8 +12,6 @@ const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3
     reconnectionDelay: 1000,
     reconnectionAttempts: Infinity
 });
-
-const buffer = new DataBuffer(100);
 
 socket.on('connect', () => {
     console.log('SSH Honeypot connected to collector server');
@@ -126,46 +126,3 @@ process.on('SIGINT', () => {
     socket.disconnect();
     process.exit(0);
 });
-
-const axios = require('axios'); // require because CommonJS file
-
-function calculateSeverity(ctx) {
-    if (ctx.method === 'password' && ctx.username === 'root') {
-        return 'high';
-    }
-    if (ctx.method === 'password') {
-        return 'medium';
-    }
-    return 'low';
-}
-
-async function getGeoData(ip) {
-    try {
-        const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-        return {
-            country: response.data.country_name || 'unknown',
-            city: response.data.city || 'unknown',
-            lat: response.data.latitude || null,
-            lon: response.data.longitude || null
-        };
-    } catch (error) {
-        console.error('Error fetching geo data:', error);
-        return {
-            country: 'unknown',
-            city: 'unknown',
-            lat: null,
-            lon: null
-        };
-    }
-}
-
-async function getPublicIP() {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip; 
-    } catch (error) {
-        console.error('Error fetching public IP:', error);
-        return 'unknown';
-    }
-}

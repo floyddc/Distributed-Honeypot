@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer');
 const { io } = require('socket.io-client');
-const { TestRunner, assert, assertEquals } = require('./utils/helpers');
+const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
 
 const runner = new TestRunner('Login Honeypot Tests');
