@@ -28,51 +28,9 @@
 </template>
 
 <script>
-import axios from 'axios'; 
+import { getGeoData, calculateSeverity, getPublicIP } from '../utils/helpers.js';
 import DataBuffer from '../utils/buffer.js';
-
 const buffer = new DataBuffer(100);
-
-async function getGeoData(ip) {
-    try {
-        const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-        return {
-            country: response.data.country_name || 'unknown',
-            city: response.data.city || 'unknown',
-            lat: response.data.latitude || null,
-            lon: response.data.longitude || null
-        };
-    } catch (error) {
-        console.error('Error fetching geo data:', error);
-        return {
-            country: 'unknown',
-            city: 'unknown',
-            lat: null,
-            lon: null
-        };
-    }
-}
-
-function calculateSeverity(username, password) {
-    if (username === 'admin' && password === 'admin123') {
-        return 'high';
-    }
-    if (username === 'root') {
-        return 'medium';
-    }
-    return 'low';
-}
-
-async function getPublicIP() {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip; 
-    } catch (error) {
-        console.error('Error fetching public IP:', error);
-        return 'unknown';
-    }
-}
 
 export default {
   name: 'App',

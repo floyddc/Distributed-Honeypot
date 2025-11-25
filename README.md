@@ -7,6 +7,8 @@
   - `docker-compose logs -f collector-server honeypot-node1 honeypot-node2` to see only those logs.
 - Visit http://localhost:3000 to check if the collector server is up.
 - `docker-compose down` to turn off containers.
+- `docker ps -a` to list all containers.
+- `docker rm <ID>` to delete a specific container.
 
 ## How Honeypot-node1 works
 - Visit http://localhost:3001 to visit the fake login page.
@@ -37,6 +39,7 @@
     │   └───src
     ├───honeypot-node2
     ├───mongo-data
-    └───tests
-        └───utils
+    ├───tests
+    │   └───utils
+    └───utils
 ```

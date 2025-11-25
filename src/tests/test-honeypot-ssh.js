@@ -1,6 +1,6 @@
 const { Client } = require('ssh2');
 const { io } = require('socket.io-client');
-const { TestRunner, assert, assertEquals } = require('./utils/helpers');
+const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
 
 const runner = new TestRunner('SSH Honeypot Tests');
