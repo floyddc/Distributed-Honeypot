@@ -25,3 +25,8 @@ Thumbs.db
 
 # Docker
 *.tar
+
+/src/collector-server/node_modules
+/src/dashboard-client/node_modules
+/src/mongo-data
+/docs_private

@@ -1,0 +1,66 @@
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  attacks: {
+    type: Array,
+    required: true
+  }
+})
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleTimeString()
+}
+
+const getSeverityClass = (severity) => {
+  switch (severity) {
+    case 'critical': return 'bg-red-100 text-red-800'
+    case 'high': return 'bg-orange-100 text-orange-800'
+    case 'medium': return 'bg-blue-100 text-blue-800'
+    default: return 'bg-green-100 text-green-800'
+  }
+}
+</script>
+
+<template>
+  <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <h3 class="text-lg font-medium text-gray-900">
+        Recent Attacks
+      </h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source IP</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protocol</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr v-for="(attack, index) in attacks" :key="index" class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(attack.timestamp) }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">{{ attack.sourceIp }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ attack.destinationPort }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ attack.protocol }}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getSeverityClass(attack.severity)">
+                {{ attack.severity.toUpperCase() }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ attack.geoData?.country || 'Unknown' }}</td>
+          </tr>
+          <tr v-if="attacks.length === 0">
+            <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
+              No data received yet.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</template>
