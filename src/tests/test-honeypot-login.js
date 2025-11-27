@@ -21,9 +21,9 @@ runner.test('Connect to Collector Server', async () => {
             reject(new Error(`Failed to connect to collector: ${error.message}`));
         });
 
-        collectorSocket.on('new_attack', (data) => {
-            console.log('   📡 Received attack data:', data);
-            if (data.attackType === 'login_attempt') {  
+        collectorSocket.on('honeypot_data', (data) => {
+            console.log('   📡 Received honeypot data:', data);
+            if (data.honeypotId === 'node1') {  
                 capturedData.push(data);
                 console.log('   ✅ Login attack captured - test will complete!');
             }
@@ -59,10 +59,9 @@ runner.test('Single login authentication attempt', async () => {
         await page.goto('http://localhost:3001', { waitUntil: 'networkidle0' });
         
         console.log('   🔐 Attempting login...');
-        await page.type('input[type="text"]', 'admin');
-        await page.type('input[type="password"]', 'password123');
+        await page.type('input#username', 'admin');
+        await page.type('input#password', 'password123');
         
-        // Login attempt promise
         const loginPromise = new Promise(async (resolve) => {
             await page.click('button[type="submit"]');
             console.log('   🚀 Form submitted');
@@ -74,7 +73,7 @@ runner.test('Single login authentication attempt', async () => {
         await Promise.race([
             Promise.all([loginPromise, loginAttackPromise]),
             new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout waiting for login attack')), 8000)
+                setTimeout(() => reject(new Error('Timeout waiting for login attack')), 10000)
             )
         ]);
         
@@ -83,11 +82,23 @@ runner.test('Single login authentication attempt', async () => {
         assert(capturedData.length > initialDataLength, 'Login attack should have been captured');
         
         const lastAttack = capturedData[capturedData.length - 1];
-        assertEquals(lastAttack.honeypotId, 'node1', 'Login Honeypot ID should be node1');
-        assertEquals(lastAttack.attackType, 'login_attempt', 'Attack type should be login_attempt');
-        assertEquals(lastAttack.username, 'admin', 'Username should be admin');
-        assertEquals(lastAttack.password, 'password123', 'Password should be password123');
         
+        assertEquals(lastAttack.honeypotId, 'node1', 'Honeypot ID should be node1');
+        assertEquals(lastAttack.protocol, 'HTTP', 'Protocol should be HTTP');
+        assertEquals(lastAttack.destinationPort, 3001, 'Port should be 3001');
+        
+        const payload = JSON.parse(lastAttack.payload);
+        assertEquals(payload.username, 'admin', 'Username should be admin');
+        assertEquals(payload.password, 'password123', 'Password should be password123');
+        
+        assert(['low', 'medium', 'critical', 'high'].includes(lastAttack.severity), 
+               'Severity should be evaluated');
+        
+        assert(lastAttack.geoData, 'Geo data should exist');
+        assert(lastAttack.geoData.country, 'Country should be present');
+        
+        console.log(`   ✅ Severity: ${lastAttack.severity}`);
+        console.log(`   ✅ Location: ${lastAttack.geoData.city}, ${lastAttack.geoData.country}`);
         console.log('   ✅ Single login attack successfully captured and verified!');
         
     } finally {
@@ -110,6 +121,7 @@ runner.test('Single login authentication attempt', async () => {
         }
         
         console.log(chalk.green('✅ Login test finished successfully.'));
+        process.exit(0);
         
     } catch (error) {
         console.error(chalk.red('\n💥 LOGIN TEST FAILED:'), error);

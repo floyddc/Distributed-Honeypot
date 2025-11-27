@@ -43,7 +43,7 @@ export async function evaluateLoginSeverity(username, password) {
 Valuta il livello di severity di un tentativo di login:
 - Username: ${username}
 - Password: ${password}
-Rispondi esclusivamente con: low, medium o critical, senza altre parole.
+Rispondi esclusivamente con: low, medium o critical, senza altre parole. Se mancano i dati, rispondi low.
   `;
 
   return await callGeminiAPI(prompt);
@@ -52,7 +52,7 @@ Rispondi esclusivamente con: low, medium o critical, senza altre parole.
 export async function evaluateFileSeverity(fileExtension) {
   const prompt = `
 Valuta la severity di un file con estensione ".${fileExtension}".
-Rispondi esclusivamente con: low, medium o critical, senza altre parole.
+Rispondi esclusivamente con: low, medium o critical, senza altre parole. Se mancano i dati, rispondi low.
   `;
 
   return await callGeminiAPI(prompt);

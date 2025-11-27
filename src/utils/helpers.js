@@ -34,9 +34,8 @@ export function calculateSeverity(username, password) {
 
 export async function getPublicIP() {
     try {
-        const response = await fetch('https://api.ipify.org?format=json'); // import 'node-fetch' not needed (natively supported in browser)
-        const data = await response.json();
-        return data.ip; 
+        const response = await axios.get('https://api.ipify.org?format=json'); // import 'node-fetch' not needed (natively supported in browser)
+        return response.data.ip;
     } catch (error) {
         console.error('Error fetching public IP:', error);
         return 'unknown';

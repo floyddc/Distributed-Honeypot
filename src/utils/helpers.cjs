@@ -1,7 +1,6 @@
 // for export compatibility with CommonJS (Node backend server) 
 
 const axios = require('axios');
-const fetch = require('node-fetch'); // requested for await fetch() - not natively supported in Node
 
 async function getGeoData(ip) {
     try {
@@ -35,9 +34,8 @@ function calculateSeverity(username, password) {
 
 async function getPublicIP() {
     try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip; 
+        const response = await axios.get('https://api.ipify.org?format=json');
+        return response.data.ip;
     } catch (error) {
         console.error('Error fetching public IP:', error);
         return 'unknown';

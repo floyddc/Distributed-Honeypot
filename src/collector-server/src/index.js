@@ -40,14 +40,9 @@ io.on('connection', (socket) => {
     console.log('A user/honeypot connected:', socket.id);
 
     socket.on('honeypot_data', (data) => {
-        // Debugging (check if data are received)
         console.log('Received honeypot data:', data); 
-        
-        // Save to DB (later)
-        // await Attack.create(data)...
-
-        // Broadcast to all clients (Dashboard)
-        io.emit('new_attack', data);
+    
+        io.emit('honeypot_data', data);
     });
 
     socket.on('disconnect', () => {

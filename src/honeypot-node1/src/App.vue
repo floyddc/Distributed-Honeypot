@@ -20,17 +20,17 @@
           placeholder="Enter your password"
         />
       </div>
-      <button type="submit">Login</button>
+      <button type="submit" :disabled="loading">
+        {{ loading ? 'Logging in...' : 'Login' }}
+      </button>
     </form>
     <p>Forgot your password? <a href="#">Reset here</a></p>
-    <small>Attempts: {{ attempts }} | Buffered: {{ bufferedCount }}</small>
+    <small>Attempts: {{ attempts }}</small>
   </div>
 </template>
 
 <script>
-import { getGeoData, calculateSeverity, getPublicIP } from '../utils/helpers.js';
-import DataBuffer from '../utils/buffer.js';
-const buffer = new DataBuffer(100);
+import axios from 'axios';
 
 export default {
   name: 'App',
@@ -39,73 +39,30 @@ export default {
       username: '',
       password: '',
       attempts: 0,
-      bufferedCount: 0
+      loading: false
     }
-  },
-  mounted() {
-    // Initialize socket connection
-    this.$socket.on('connect', () => {
-      console.log('Connected to collector server');
-      const bufferedData = buffer.flush();
-      bufferedData.forEach(data => {
-        this.$socket.emit('honeypot_data', data);
-      });
-      
-      if (bufferedData.length > 0) {
-        console.log(`Flushed ${bufferedData.length} buffered items`);
-      }
-      
-      this.bufferedCount = buffer.size();
-    });
-    
-    this.$socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-    });
-
-    this.$socket.on('disconnect', () => {
-      console.log('Disconnected from collector - buffering data');
-    });
   },
   methods: {
     async handleSubmit() {
       this.attempts++;
-      const publicIp = await getPublicIP();
-      
-      // Log attack attempt
-      const attackData = {
-        honeypotId: 'node1', 
-        sourceIp: publicIp,
-        destinationPort: 3001, 
-        protocol: 'HTTP', 
-        payload: JSON.stringify({ 
-          username: this.username.trim(),
-          password: this.password.trim()
-        }),
-        severity: calculateSeverity(this.username, this.password), 
-        timestamp: new Date().toISOString(), 
-        geoData: await getGeoData(publicIp) 
-      };
+      this.loading = true;
 
       try {
-        // Send via Socket.IO or buffer
-        if (this.$socket && this.$socket.connected) {
-          this.$socket.emit('honeypot_data', attackData);
-          console.log('Attack data sent via Socket.IO');
-        } else {
-          buffer.add(attackData);
-          this.bufferedCount = buffer.size();
-          console.log(`Data buffered. Buffer size: ${this.bufferedCount}`);
-        }
-        
-        // Always show "Invalid credentials"
+        // Send login attempt to node server
+        await axios.post('/api/login', {
+          username: this.username.trim(),
+          password: this.password.trim()
+        });
+
         alert('Invalid username or password');
         
-        // Reset form
+      } catch (error) {
+        alert('Invalid username or password');
+        
+      } finally {
+        this.loading = false;
         this.username = '';
         this.password = '';
-      } catch (error) {
-        console.error('Failed to send data to collector:', error);
-        alert('Invalid username or password');
       }
     }
   }
@@ -145,5 +102,10 @@ button {
   border: none;
   border-radius: 3px;
   cursor: pointer;
+}
+
+button:disabled {
+  background-color: grey;
+  cursor: not-allowed;
 }
 </style>

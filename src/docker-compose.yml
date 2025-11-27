@@ -33,10 +33,13 @@ services:
     container_name: honeypot-node1
     ports:
       - "3001:3001"
+    env_file:
+      - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - MAX_RETRIES=3
       - RETRY_DELAY=2000
+        
     depends_on:
       - collector-server
     networks:
@@ -50,9 +53,12 @@ services:
     container_name: honeypot-node2
     ports:
       - "2222:2222"
+    env_file:
+      - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - SSH_PORT=2222
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -66,8 +72,11 @@ services:
     container_name: honeypot-node3
     ports:
       - "3003:3003"
+    env_file:
+      - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - collector-server
     networks:

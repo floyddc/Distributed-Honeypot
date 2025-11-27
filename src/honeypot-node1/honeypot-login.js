@@ -2,12 +2,16 @@ const express = require('express');
 const path = require('path');
 const { io } = require('socket.io-client');
 const DataBuffer = require('./utils/buffer.cjs');
+const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
+const { evaluateLoginSeverity } = require('./utils/severity-evaluator.js');
 
 const app = express();
 const PORT = 3001;
 
-// Socket connection 
-const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'dist')));
+
+const socket = io('http://collector-server:3000', {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: Infinity
@@ -37,7 +41,51 @@ socket.on('disconnect', () => {
     console.log('Disconnected from collector - buffering mode activated');
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
+// API endpoint 
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const publicIp = await getPublicIP();
+        const geoData = await getGeoData(publicIp);
+        const severity = await evaluateLoginSeverity(username, password);
+
+        const attackData = {
+            honeypotId: 'node1',
+            sourceIp: publicIp,
+            destinationPort: 3001,
+            protocol: 'HTTP',
+            payload: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            severity: severity,
+            timestamp: new Date().toISOString(),
+            geoData: geoData
+        };
+
+        // Send to collector or buffer
+        if (socket.connected) {
+            socket.emit('honeypot_data', attackData);
+            console.log('Attack data sent to collector via Socket.IO');
+        } else {
+            buffer.add(attackData);
+            console.log(`Data buffered. Buffer size: ${buffer.size()}`);
+        }
+
+        // Fake error message
+        res.status(401).json({
+            success: false,
+            message: 'Invalid username or password'
+        });
+
+    } catch (error) {
+        console.error('Error processing login attempt:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
