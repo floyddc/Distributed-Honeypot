@@ -21,29 +21,62 @@ const generateSeverity = () => {
     return severities[Math.floor(Math.random() * severities.length)];
 };
 
-socket.on('connect', () => {
-    console.log('Mock Honeypot Connected to Collector');
+const generateRandomProtocol = () => {
+    const protocols = ['TCP', 'UDP', 'ICMP'];
+    return protocols[Math.floor(Math.random() * protocols.length)];
+};
 
-    setInterval(() => {
-        const attackData = {
+let intervalId;
+
+function startSimulation() {
+    if (intervalId) return; // Already running
+
+    intervalId = setInterval(() => {
+        const attack = {
             sourceIp: generateRandomIP(),
             destinationPort: generateRandomPort(),
-            protocol: 'TCP',
+            protocol: generateRandomProtocol(),
             severity: generateSeverity(),
             timestamp: new Date(),
             geoData: {
                 country: generateRandomCountry()
             }
         };
-
-        console.log('Sending attack:', attackData.sourceIp);
-        // In a real scenario, this would be a specific event for honeypots
-        // For now, we emit 'new_attack' directly or via a specific channel if implemented
-        // Let's assume the server listens to 'honeypot_data' and broadcasts 'new_attack'
-        socket.emit('honeypot_data', attackData);
+        console.log('Sending attack:', attack.sourceIp);
+        socket.emit('honeypot_data', attack);
     }, 2000); // Send attack every 2 seconds
+}
+
+function stopSimulation() {
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+}
+
+const HONEYPOT_ID = process.argv[2] || 'all'; // Pass ID as argument or default to 'all' (which effectively means it listens to everything if we don't filter properly, but let's filter)
+
+socket.on('connect', () => {
+    console.log(`Mock Honeypot (${HONEYPOT_ID}) Connected to Collector`);
+    startSimulation();
+});
+
+socket.on('admin_command', (data) => {
+    console.log('Received admin command:', data);
+
+    // Check if command is for this honeypot or for all
+    if (data.target === 'all' || data.target === HONEYPOT_ID) {
+        if (data.command === 'stop') {
+            console.log(`Stopping simulation for ${HONEYPOT_ID}...`);
+            stopSimulation();
+        } else if (data.command === 'start') {
+            console.log(`Starting simulation for ${HONEYPOT_ID}...`);
+            startSimulation();
+        }
+    }
 });
 
 socket.on('disconnect', () => {
-    console.log('Disconnected from Collector');
+    console.log('Disconnected from server');
+    stopSimulation();
 });
