@@ -26,18 +26,21 @@ const handleLogout = () => {
         </h1>
       </div>
 
-      <nav class="flex-1 px-4 py-6 space-y-2">
-        <router-link to="/"
-          class="group flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors"
-          active-class="bg-blue-100 text-blue-700"
-          :class="$route.path !== '/' ? 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' : ''">
-          Dashboard
-        </router-link>
-        
-        <a href="#" class="group flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-          Analytics
-        </a>
-      </nav>
+        <nav class="mt-5 px-2 space-y-1">
+          <router-link to="/" class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+            <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Dashboard
+          </router-link>
+
+          <router-link v-if="authStore.user?.role === 'admin'" to="/admin" class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+            <svg class="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Admin Panel
+          </router-link>
+        </nav>
 
       <div class="p-4 border-t border-gray-200 bg-gray-50">
         <div class="flex items-center">
@@ -46,7 +49,7 @@ const handleLogout = () => {
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-gray-700">{{ authStore.user?.username }}</p>
-            <p class="text-xs text-gray-500">Admin</p>
+            <p class="text-xs text-gray-500">{{ authStore.user?.role || 'User' }}</p>
           </div>
         </div>
       </div>

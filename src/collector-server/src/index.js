@@ -24,7 +24,11 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
-// app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+
+// Make io accessible in routes
+app.set('io', io);
 
 // Basic Route
 app.get('/', (req, res) => {
