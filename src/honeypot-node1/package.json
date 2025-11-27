@@ -1,0 +1,22 @@
+{
+  "name": "honeypot-node1",
+  "version": "1.0.0",
+  "description": "Honeypot Node 1",
+  "main": "honeypot-login.js",
+  "scripts": {
+    "start": "node honeypot-login.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "socket.io-client": "^4.8.1",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.6.2",
+    "vite": "^5.4.0"
+  }
+}
