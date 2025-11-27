@@ -59,6 +59,21 @@ services:
       - app-network
     restart: unless-stopped
 
+  honeypot-node3:
+    build:
+      context: .
+      dockerfile: ./honeypot-node3/Dockerfile
+    container_name: honeypot-node3
+    ports:
+      - "3003:3003"
+    environment:
+      - COLLECTOR_SERVER_URL=http://collector-server:3000
+    depends_on:
+      - collector-server
+    networks:
+      - app-network
+    restart: unless-stopped
+    
 networks:
   app-network:
     driver: bridge

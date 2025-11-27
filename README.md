@@ -19,11 +19,16 @@
 - Check logs on Terminal.
 - _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
 
+## How Honeypot-node3 works
+- Visit http://localhost:3003 to visit the fake file uploader.
+- Upload a file and check logs on Terminal.
+
 ## How to run tests
 - `cd tests`
   - `npm install` 
   - `npm run test:login`
   - `npm run test:ssh`
+  - `npm run test:evaluator`
 
 ## Project tree
 ```
@@ -38,6 +43,8 @@
     ├───honeypot-node1
     │   └───src
     ├───honeypot-node2
+    ├───honeypot-node3
+        └───src
     ├───mongo-data
     ├───tests
     │   └───utils
