@@ -8,52 +8,29 @@
           type="file" 
           id="file" 
           @change="onFileChange"
+          required
         />
       </div>
-      <button type="submit">Upload</button>
+      <button type="submit" :disabled="loading">
+        {{ loading ? 'Uploading...' : 'Upload' }}
+      </button>
     </form>
     <p v-if="file">Selected file: {{ file.name }}</p>
-    <small>Buffered: {{ bufferedCount }}</small>
+    <small>Uploads: {{ uploads }}</small>
   </div>
 </template>
 
 <script>
-import { getGeoData, calculateSeverity, getPublicIP } from '../utils/helpers.js';
-import { evaluateFileSeverity } from '../utils/severity-evaluator.js';
-import DataBuffer from '../utils/buffer.js';
-const buffer = new DataBuffer(100);
+import axios from 'axios';
 
 export default {
   name: 'App',
   data() {
     return {
       file: null,
-      bufferedCount: 0
+      uploads: 0,
+      loading: false
     };
-  },
-  mounted() {
-    // Initialize socket connection
-    this.$socket.on('connect', () => {
-      console.log('Connected to collector server');
-      const bufferedData = buffer.flush();
-      bufferedData.forEach(data => {
-        this.$socket.emit('honeypot_data', data);
-      });
-      
-      if (bufferedData.length > 0) {
-        console.log(`Flushed ${bufferedData.length} buffered items`);
-      }
-      
-      this.bufferedCount = buffer.size();
-    });
-    
-    this.$socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-    });
-
-    this.$socket.on('disconnect', () => {
-      console.log('Disconnected from collector - buffering data');
-    });
   },
   methods: {
     onFileChange(event) {
@@ -62,40 +39,28 @@ export default {
     async handleUpload() {
       if (!this.file) return;
       
-      const publicIp = await getPublicIP();
-      const geoData = await getGeoData(publicIp);
-      const fileExtension = this.file.name.split('.').pop();
-
-      // Log file upload attempt
-      const uploadData = {
-        honeypotId: 'node3',
-        sourceIp: publicIp,
-        destinationPort: 3003,
-        protocol: 'FTP',
-        payload: JSON.stringify({
-          fileName: this.file.name,
-          fileExtension: fileExtension
-        }),
-        severity: await evaluateFileSeverity(fileExtension),
-        timestamp: new Date().toISOString(),
-        geoData: geoData
-      };
+      this.uploads++;
+      this.loading = true;
 
       try {
-        if (this.$socket && this.$socket.connected) {
-          this.$socket.emit('honeypot_data', uploadData);
-          console.log('File data sent via Socket.IO');
-        } else {
-          buffer.add(uploadData);
-          this.bufferedCount = buffer.size();
-          console.log(`Data buffered. Buffer size: ${this.bufferedCount}`);
-        }
+        const formData = new FormData();
+        formData.append('file', this.file);
 
-        alert('File uploaded successfully!');
-        this.file = null;
+        const response = await axios.post('/api/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        alert(response.data.message || 'File uploaded successfully!');
+        
       } catch (error) {
-        console.error('Failed to send data to collector:', error);
-        alert('Failed to upload file.');
+        alert('Failed to upload file. Please try again.');   
+      } finally {
+        this.loading = false;
+        this.file = null;
+        const fileInput = document.getElementById('file');
+        if (fileInput) fileInput.value = '';
       }
     }
   }
@@ -135,5 +100,10 @@ button {
   border: none;
   border-radius: 3px;
   cursor: pointer;
+}
+
+button:disabled {
+  background-color: grey;
+  cursor: not-allowed;
 }
 </style>

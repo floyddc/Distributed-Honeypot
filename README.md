@@ -1,7 +1,7 @@
 # NOTES (building up this project)
 
 ## How to turn on/off the system
-- `docker-compose build --no-cache`
+- `docker-compose build`
 - `docker-compose up` to run all
   - `docker-compose up -d` to run all in background.
   - `docker-compose logs -f collector-server honeypot-node1 honeypot-node2` to see only those logs.
@@ -24,7 +24,8 @@
 - Upload a file and check logs on Terminal.
 
 ## How to run tests
-- `cd tests`
+- Turn on the system with `docker-compose up`
+- In another Terminal: `cd tests`
   - `npm install` 
   - `npm run test:login`
   - `npm run test:ssh`
@@ -32,19 +33,31 @@
 
 ## Project tree
 ```
+├───.github
+│   └───workflows
 ├───docs
 └───src
     ├───collector-server
+    │   ├───scripts
     │   └───src
     │       ├───config
-    │       └───models
+    │       ├───controllers
+    │       ├───middleware
+    │       ├───models
+    │       └───routes
     ├───dashboard-client
     │   └───src
+    │       ├───assets
+    │       ├───components
+    │       ├───layouts
+    │       ├───router
+    │       ├───stores
+    │       └───views
     ├───honeypot-node1
     │   └───src
     ├───honeypot-node2
     ├───honeypot-node3
-        └───src
+    │   └───src
     ├───mongo-data
     ├───tests
     │   └───utils
