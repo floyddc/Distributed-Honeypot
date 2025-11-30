@@ -1,34 +1,22 @@
 const mongoose = require('mongoose');
 
 const honeypotSchema = new mongoose.Schema({
-    name: {
+    honeypotId: {
         type: String,
         required: true,
         unique: true
-    },
-    apiKey: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    ipAddress: {
-        type: String
     },
     status: {
         type: String,
-        enum: ['online', 'offline'],
+        enum: ['online', 'offline', 'faulty'],
         default: 'offline'
     },
-    lastSeen: {
-        type: Date
-    },
-    location: {
-        type: String // Could be "London, UK" or GeoJSON
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
+    description: {
+        type: String,
+        default: ''
     }
+}, { 
+    timestamps: true // Aggiunge automaticamente createdAt e updatedAt
 });
 
 module.exports = mongoose.model('Honeypot', honeypotSchema);

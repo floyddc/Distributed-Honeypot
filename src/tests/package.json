@@ -5,7 +5,7 @@
   "scripts": {
     "test:login": "node test-honeypot-login.js",
     "test:ssh": "node test-honeypot-ssh.js",
-    "test:evaluator": "node test-severity-evaluator.js"
+    "test:evaluator": "node test-GeminiAPI.js"
   },
   "dependencies": {
     "axios": "^1.13.2",

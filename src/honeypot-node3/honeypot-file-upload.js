@@ -4,11 +4,12 @@ const multer = require('multer');
 const { io } = require('socket.io-client');
 const DataBuffer = require('./utils/buffer.cjs');
 const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
-const { evaluateFileSeverity } = require('./utils/severity-evaluator.js');
+const { evaluateFileSeverity } = require('./utils/GeminiAPI.js');
 const buffer = new DataBuffer(100);
+const HONEYPOT_ID = 'node3';
+const PORT = 3003;
 
 const app = express();
-const PORT = 3003;
 
 // Save uploaded file on memory, not on disk (<- potential security issue)
 const upload = multer({ 
@@ -64,16 +65,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         const severity = await evaluateFileSeverity(fileExtension);
 
         const attackData = {
-            honeypotId: 'node3',
+            honeypotId: HONEYPOT_ID,
+            port: PORT,
             sourceIp: publicIp,
-            destinationPort: 3003,
-            protocol: 'FTP',
-            payload: JSON.stringify({
-                fileName: fileName,
-                fileExtension: fileExtension,
-                fileSize: req.file.size
-            }),
             severity: severity,
+            description: `.${fileExtension} upload`,
             timestamp: new Date().toISOString(),
             geoData: geoData
         };

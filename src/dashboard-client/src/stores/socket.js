@@ -22,9 +22,9 @@ export const useSocketStore = defineStore('socket', () => {
             console.log('Socket disconnected')
         })
 
-        socket.value.on('new_attack', (attack) => {
-            console.log('New attack received:', attack)
-            attacks.value.unshift(attack)
+        socket.value.on('honeypot_data', (data) => {     
+            console.log('New attack received:', data)
+            attacks.value.unshift(data)
             if (attacks.value.length > 50) {
                 attacks.value.pop()
             }

@@ -2,28 +2,24 @@ const mongoose = require('mongoose');
 
 const attackSchema = new mongoose.Schema({
     honeypotId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Honeypot',
+        type: String,
+        required: true
+    },
+    port: {
+        type: Number,
         required: true
     },
     sourceIp: {
         type: String,
         required: true
     },
-    destinationPort: {
-        type: Number,
-        required: true
-    },
-    protocol: {
-        type: String // TCP, UDP, ICMP
-    },
-    payload: {
-        type: String
-    },
     severity: {
         type: String,
-        enum: ['low', 'medium', 'high', 'critical'],
+        enum: ['low', 'medium', 'critical'],
         default: 'low'
+    },
+    description: {
+        type: String
     },
     timestamp: {
         type: Date,

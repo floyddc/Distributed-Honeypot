@@ -23,35 +23,57 @@ const props = defineProps({
 
 // Compute Attacks by Severity
 const severityData = computed(() => {
-  const counts = { low: 0, medium: 0, high: 0, critical: 0 }
+  const counts = { low: 0, medium: 0, critical: 0 }
   props.attacks.forEach(a => {
-    if (counts[a.severity] !== undefined) counts[a.severity]++
+    if (a.severity === 'low' || a.severity === 'unknown' || !a.severity) {
+      counts.low++
+    } else if (a.severity === 'medium') {
+      counts.medium++
+    } else if (a.severity === 'critical') {
+      counts.critical++
+    }
   })
   
   return {
-    labels: ['Low', 'Medium', 'High', 'Critical'],
+    labels: ['Low/Unknown', 'Medium', 'Critical'],
     datasets: [{
-      backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+      backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'],
       borderColor: '#ffffff',
       borderWidth: 2,
-      data: [counts.low, counts.medium, counts.high, counts.critical]
+      data: [counts.low, counts.medium, counts.critical]
     }]
   }
 })
 
-// Compute Attacks by Protocol
-const protocolData = computed(() => {
+// Compute Attacks by Port
+const portData = computed(() => {
   const counts = {}
   props.attacks.forEach(a => {
-    counts[a.protocol] = (counts[a.protocol] || 0) + 1
+    const port = a.port || 'Unknown'
+    counts[port] = (counts[port] || 0) + 1
   })
   
+  const sortedPorts = Object.keys(counts).sort((a, b) => {
+    if (a === 'Unknown') return 1
+    if (b === 'Unknown') return -1
+    return Number(a) - Number(b)
+  })
+  
+  const portColors = {
+    '2222': '#8b5cf6', // viola
+    '3001': '#3b82f6', // blu
+    '3003': '#10b981', // verde
+    'Unknown': '#6b7280' // grigio
+  }
+  
+  const backgroundColors = sortedPorts.map(port => portColors[port] || '#a855f7')
+  
   return {
-    labels: Object.keys(counts),
+    labels: sortedPorts,
     datasets: [{
-      label: 'Attacks by Protocol',
-      backgroundColor: '#8b5cf6',
-      data: Object.values(counts)
+      label: 'Attacks by Port',
+      backgroundColor: backgroundColors,
+      data: sortedPorts.map(port => counts[port])
     }]
   }
 })
@@ -91,7 +113,6 @@ const doughnutOptions = {
 
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- Severity Chart -->
     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
       <h3 class="text-gray-500 text-sm font-medium mb-4 uppercase">Threat Severity Distribution</h3>
       <div class="h-64">
@@ -99,11 +120,10 @@ const doughnutOptions = {
       </div>
     </div>
 
-    <!-- Protocol Chart -->
     <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <h3 class="text-gray-500 text-sm font-medium mb-4 uppercase">Protocol Traffic Analysis</h3>
+      <h3 class="text-gray-500 text-sm font-medium mb-4 uppercase">Traffic Analysis by Port</h3>
       <div class="h-64">
-        <Bar :data="protocolData" :options="chartOptions" />
+        <Bar :data="portData" :options="chartOptions" />
       </div>
     </div>
   </div>

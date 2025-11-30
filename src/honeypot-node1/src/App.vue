@@ -9,6 +9,7 @@
           id="username" 
           v-model="username" 
           placeholder="Enter your username"
+          required
         />
       </div>
       <div class="form-group">
@@ -18,6 +19,7 @@
           id="password" 
           v-model="password" 
           placeholder="Enter your password"
+          required
         />
       </div>
       <button type="submit" :disabled="loading">

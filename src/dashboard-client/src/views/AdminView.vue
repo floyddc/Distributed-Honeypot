@@ -9,13 +9,6 @@ const honeypots = ref([])
 const loading = ref(false)
 const error = ref('')
 
-// Form data for new honeypot
-const newHoneypot = ref({
-  name: '',
-  ipAddress: '',
-  location: ''
-})
-
 const fetchUsers = async () => {
   try {
     const response = await fetch('http://localhost:3000/api/admin/users', {
@@ -45,23 +38,6 @@ const promoteUser = async (userId) => {
       body: JSON.stringify({ role: 'admin' })
     })
     if (response.ok) await fetchUsers()
-  } catch (e) { console.error(e) }
-}
-
-const addHoneypot = async () => {
-  try {
-    const response = await fetch('http://localhost:3000/api/admin/honeypots', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(newHoneypot.value)
-    })
-    if (response.ok) {
-      await fetchHoneypots()
-      newHoneypot.value = { name: '', ipAddress: '', location: '' } // Reset form
-    }
   } catch (e) { console.error(e) }
 }
 
@@ -124,17 +100,6 @@ onMounted(() => {
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 mb-8 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
             <h3 class="text-lg font-medium text-gray-900">Honeypots</h3>
-        </div>
-        
-        <!-- Add New Form -->
-        <div class="p-6 border-b border-gray-200 bg-gray-50">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">Register New Honeypot</h4>
-            <div class="flex gap-4">
-                <input v-model="newHoneypot.name" placeholder="Name" class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                <input v-model="newHoneypot.ipAddress" placeholder="IP Address" class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                <input v-model="newHoneypot.location" placeholder="Location" class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                <button @click="addHoneypot" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">Add</button>
-            </div>
         </div>
 
         <div class="overflow-x-auto">

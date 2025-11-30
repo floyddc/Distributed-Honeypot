@@ -49,26 +49,6 @@ const getHoneypots = async (req, res) => {
     }
 };
 
-// @desc    Add a new honeypot
-// @route   POST /api/admin/honeypots
-// @access  Private/Admin
-const addHoneypot = async (req, res) => {
-    const { name, ipAddress, location, apiKey } = req.body;
-
-    try {
-        const honeypot = await Honeypot.create({
-            name,
-            ipAddress,
-            location,
-            apiKey: apiKey || Math.random().toString(36).substring(7), // Generate random key if not provided
-            status: 'offline'
-        });
-        res.status(201).json(honeypot);
-    } catch (error) {
-        res.status(400).json({ message: 'Invalid honeypot data' });
-    }
-};
-
 // @desc    Delete a honeypot
 // @route   DELETE /api/admin/honeypots/:id
 // @access  Private/Admin
@@ -127,7 +107,6 @@ module.exports = {
     getUsers,
     updateUserRole,
     getHoneypots,
-    addHoneypot,
     deleteHoneypot,
     controlHoneypot
 };

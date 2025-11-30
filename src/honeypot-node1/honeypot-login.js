@@ -3,10 +3,10 @@ const path = require('path');
 const { io } = require('socket.io-client');
 const DataBuffer = require('./utils/buffer.cjs');
 const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
-const { evaluateLoginSeverity } = require('./utils/severity-evaluator.js');
-
-const app = express();
+const { evaluateLoginSeverity, recognizeThreat } = require('./utils/GeminiAPI.js');
+const HONEYPOT_ID = 'node1';
 const PORT = 3001;
+const app = express();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -48,17 +48,14 @@ app.post('/api/login', async (req, res) => {
         const publicIp = await getPublicIP();
         const geoData = await getGeoData(publicIp);
         const severity = await evaluateLoginSeverity(username, password);
+        const description = await recognizeThreat(username, password);
 
         const attackData = {
-            honeypotId: 'node1',
+            honeypotId: HONEYPOT_ID,
+            port: PORT,
             sourceIp: publicIp,
-            destinationPort: 3001,
-            protocol: 'HTTP',
-            payload: JSON.stringify({
-                username: username,
-                password: password
-            }),
             severity: severity,
+            description: description,
             timestamp: new Date().toISOString(),
             geoData: geoData
         };

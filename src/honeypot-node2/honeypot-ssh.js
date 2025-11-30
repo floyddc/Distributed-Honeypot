@@ -3,9 +3,11 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { io } = require('socket.io-client');
 const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
-const { evaluateLoginSeverity } = require('./utils/severity-evaluator.js');
+const { evaluateLoginSeverity } = require('./utils/GeminiAPI.js');
 const DataBuffer = require('./utils/buffer.cjs');
 const buffer = new DataBuffer(100);
+const HONEYPOT_ID = 'node2';
+const PORT = process.env.SSH_PORT || 2222;
 
 const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
     reconnection: true,
@@ -48,7 +50,6 @@ const hostKey = crypto.generateKeyPairSync('rsa', {
     }
 });
 
-const PORT = process.env.SSH_PORT || 2222;
 
 const server = new Server({
     hostKeys: [hostKey.privateKey]
@@ -79,17 +80,11 @@ const server = new Server({
             }
 
             const authData = {
-                honeypotId: 'node2',
+                honeypotId: HONEYPOT_ID,
+                port: PORT,
                 sourceIp: publicIp,
-                destinationPort: PORT,
-                protocol: 'SSH',
-                payload: JSON.stringify({
-                    username: username,
-                    password: password,
-                    method: ctx.method,
-                    clientIP: clientInfo.sourceIP
-                }),
                 severity: severity,
+                description: 'SSH Login attempt',
                 timestamp: new Date().toISOString(),
                 geoData: geoData
             };
