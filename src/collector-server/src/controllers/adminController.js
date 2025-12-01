@@ -1,9 +1,8 @@
 const User = require('../models/User');
 const Honeypot = require('../models/Honeypot');
+const Docker = require('dockerode');
+const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
-// @desc    Get all users
-// @route   GET /api/admin/users
-// @access  Private/Admin
 const getUsers = async (req, res) => {
     try {
         const users = await User.find({}).select('-password');
@@ -13,9 +12,6 @@ const getUsers = async (req, res) => {
     }
 };
 
-// @desc    Update user role
-// @route   PUT /api/admin/users/:id/role
-// @access  Private/Admin
 const updateUserRole = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -37,9 +33,6 @@ const updateUserRole = async (req, res) => {
     }
 };
 
-// @desc    Get all honeypots
-// @route   GET /api/admin/honeypots
-// @access  Private/Admin
 const getHoneypots = async (req, res) => {
     try {
         const honeypots = await Honeypot.find({});
@@ -49,57 +42,100 @@ const getHoneypots = async (req, res) => {
     }
 };
 
-// @desc    Delete a honeypot
-// @route   DELETE /api/admin/honeypots/:id
-// @access  Private/Admin
-const deleteHoneypot = async (req, res) => {
-    try {
-        const honeypot = await Honeypot.findById(req.params.id);
-
-        if (honeypot) {
-            await honeypot.deleteOne();
-            res.json({ message: 'Honeypot removed' });
-        } else {
-            res.status(404).json({ message: 'Honeypot not found' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
-    }
+const findDockerContainer = async (honeypotId) => {
+    const containers = await docker.listContainers({ all: true });
+    const containerNameMap = {
+        'node1': 'honeypot-node1',
+        'node2': 'honeypot-node2',
+        'node3': 'honeypot-node3'
+    };
+    const targetName = containerNameMap[honeypotId];
+    if (!targetName) return null; 
+    return containers.find(c => 
+        c.Names.some(name => name.includes(targetName))
+    );
 };
 
-// @desc    Control honeypot status
-// @route   POST /api/admin/honeypots/:id/status
-// @access  Private/Admin
 const controlHoneypot = async (req, res) => {
-    const { status } = req.body; // 'start' or 'stop'
-    const { id } = req.params; // Honeypot ID (or 'all')
+    try {
+        const { action } = req.body; 
+        const { id } = req.params; 
 
-    const io = req.app.get('io');
-
-    if (io) {
-        // Broadcast command. Target can be 'all' or specific ID.
-        // The honeypot script will check if the target matches its ID.
-        io.emit('admin_command', { target: id, command: status });
-
-        // Update status in DB if it's a real honeypot
-        if (id !== 'all') {
-            try {
-                await Honeypot.findByIdAndUpdate(id, { status: status === 'start' ? 'online' : 'offline' });
-            } catch (err) {
-                console.error('Error updating honeypot status in DB:', err);
+        if (id === 'all') {
+            const honeypots = await Honeypot.find({});
+            const results = [];
+            
+            for (const hp of honeypots) {
+                try {
+                    const containerInfo = await findDockerContainer(hp.honeypotId);
+                    if (!containerInfo) {
+                        results.push({ honeypotId: hp.honeypotId, status: 'container not found' });
+                        continue;
+                    }
+                    
+                    const container = docker.getContainer(containerInfo.Id);
+                    
+                    if (action === 'start') {
+                        if (containerInfo.State !== 'running') {
+                            await container.start();
+                            await Honeypot.findByIdAndUpdate(hp._id, { status: 'online' });
+                            results.push({ honeypotId: hp.honeypotId, status: 'started' });
+                        } else {
+                            results.push({ honeypotId: hp.honeypotId, status: 'already running' });
+                        }
+                    } else if (action === 'stop') {
+                        if (containerInfo.State === 'running') {
+                            await container.stop();
+                            await Honeypot.findByIdAndUpdate(hp._id, { status: 'offline' });
+                            results.push({ honeypotId: hp.honeypotId, status: 'stopped' });
+                        } else {
+                            results.push({ honeypotId: hp.honeypotId, status: 'already stopped' });
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error controlling ${hp.honeypotId}:`, err.message);
+                    results.push({ honeypotId: hp.honeypotId, status: 'error', error: err.message });
+                }
             }
-        } else {
-            // If 'all', update all
-            try {
-                await Honeypot.updateMany({}, { status: status === 'start' ? 'online' : 'offline' });
-            } catch (err) {
-                console.error('Error updating all honeypots status in DB:', err);
-            }
+            
+            return res.json({ message: `Command ${action} executed on all honeypots`, results });
         }
 
-        res.json({ message: `Command ${status} sent to target ${id} ` });
-    } else {
-        res.status(500).json({ message: 'Socket.io instance not found' });
+        const honeypot = await Honeypot.findById(id);
+        if (!honeypot) {
+            return res.status(404).json({ message: 'Honeypot not found' });
+        }
+
+        const containerInfo = await findDockerContainer(honeypot.honeypotId);
+        if (!containerInfo) {
+            return res.status(404).json({ message: 'Docker container not found' });
+        }
+
+        const container = docker.getContainer(containerInfo.Id);
+
+        if (action === 'start') {
+            if (containerInfo.State !== 'running') {
+                await container.start();
+                await Honeypot.findByIdAndUpdate(id, { status: 'online' });
+                res.json({ message: `Honeypot ${honeypot.honeypotId} started successfully` });
+            } else {
+                res.json({ message: `Honeypot ${honeypot.honeypotId} is already running` });
+            }
+        } else if (action === 'stop') {
+            if (containerInfo.State === 'running') {
+                await container.stop();
+                await Honeypot.findByIdAndUpdate(id, { status: 'offline' });
+                res.json({ message: `Honeypot ${honeypot.honeypotId} stopped successfully` });
+            } else {
+                res.json({ message: `Honeypot ${honeypot.honeypotId} is already stopped` });
+            }
+        } else {
+            res.status(400).json({ message: 'Invalid action. Use "start" or "stop"' });
+        }
+
+    } catch (error) {
+        console.error('Error controlling honeypot:', error);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -107,6 +143,5 @@ module.exports = {
     getUsers,
     updateUserRole,
     getHoneypots,
-    deleteHoneypot,
     controlHoneypot
 };

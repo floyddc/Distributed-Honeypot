@@ -1,11 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useSocketStore } from '../stores/socket'
 import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const socketStore = useSocketStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
+
+const systemStatus = computed(() => {
+  const online = socketStore.honeypots.filter(h => h.status === 'online').length
+  return online > 0 ? 'online' : 'offline'
+})
 
 const handleLogout = () => {
   authStore.logout()
@@ -64,9 +71,14 @@ const handleLogout = () => {
         </button>
         
         <div class="flex-1 flex justify-end items-center space-x-4">
-          <div class="hidden md:flex items-center px-3 py-1 rounded-full bg-green-100 border border-green-200">
-            <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-            <span class="text-xs font-medium text-green-700">System Online</span>
+          <div class="hidden md:flex items-center px-3 py-1 rounded-full border"
+               :class="systemStatus === 'online' ? 'bg-green-100 border-green-200' : 'bg-red-100 border-red-200'">
+            <span class="w-2 h-2 rounded-full mr-2 animate-pulse"
+                  :class="systemStatus === 'online' ? 'bg-green-500' : 'bg-red-500'"></span>
+            <span class="text-xs font-medium"
+                  :class="systemStatus === 'online' ? 'text-green-700' : 'text-red-700'">
+              System {{ systemStatus === 'online' ? 'Online' : 'Offline' }}
+            </span>
           </div>
 
           <button @click="handleLogout" class="text-sm text-gray-600 hover:text-red-600 transition-colors">

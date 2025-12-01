@@ -1,11 +1,19 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import AttackTable from '../components/AttackTable.vue'
 import DashboardCharts from '../components/DashboardCharts.vue'
 import { useSocketStore } from '../stores/socket'
 
 const socketStore = useSocketStore()
+
+const activeHoneypots = computed(() => {
+  return socketStore.honeypots.filter(h => h.status === 'online').length
+})
+
+const totalHoneypots = computed(() => {
+  return socketStore.honeypots.length
+})
 
 onMounted(() => {
   socketStore.connect()
@@ -38,8 +46,7 @@ onUnmounted(() => {
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 class="text-gray-500 text-sm font-medium uppercase">Active Honeypots</h3>
           <div class="mt-2">
-            <p class="text-3xl font-bold text-gray-900">1</p>
-            <p class="text-sm text-green-600 mt-1">Node-1 Online</p>
+            <p class="text-3xl font-bold text-gray-900">{{ activeHoneypots }} / {{ totalHoneypots }}</p>
           </div>
         </div>
 
@@ -47,8 +54,13 @@ onUnmounted(() => {
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 class="text-gray-500 text-sm font-medium uppercase">System Status</h3>
           <div class="mt-2">
-            <p class="text-3xl font-bold text-green-600">OK</p>
-            <p class="text-sm text-gray-500 mt-1">Monitoring active</p>
+            <p :class="activeHoneypots > 0 ? 'text-green-600' : 'text-red-600'" 
+               class="text-3xl font-bold">
+              {{ activeHoneypots > 0 ? 'OK' : 'OFFLINE' }}
+            </p>
+            <p class="text-sm text-gray-500 mt-1">
+              {{ activeHoneypots > 0 ? 'Monitoring active' : 'No honeypots online' }}
+            </p>
           </div>
         </div>
 

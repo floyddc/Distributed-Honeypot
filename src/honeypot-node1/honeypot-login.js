@@ -6,8 +6,9 @@ const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
 const { evaluateLoginSeverity, recognizeThreat } = require('./utils/GeminiAPI.js');
 const HONEYPOT_ID = 'node1';
 const PORT = 3001;
+let heartbeatInterval;
+const buffer = new DataBuffer(100);
 const app = express();
-
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -17,10 +18,23 @@ const socket = io('http://collector-server:3000', {
     reconnectionAttempts: Infinity
 });
 
-const buffer = new DataBuffer(100);
-
 socket.on('connect', async () => {
     console.log('Honeypot Node 1 connected to collector server');
+    
+    socket.emit('honeypot_status', {
+        honeypotId: HONEYPOT_ID,
+        status: 'online',
+        port: PORT,
+        timestamp: new Date().toISOString()
+    });
+    
+    heartbeatInterval = setInterval(() => {
+        socket.emit('honeypot_heartbeat', {
+            honeypotId: HONEYPOT_ID,
+            port: PORT,
+            timestamp: new Date().toISOString()
+        });
+    }, 5000);   // 5s
     
     // Flush buffer on connect 
     const bufferedData = buffer.flush();
@@ -29,16 +43,17 @@ socket.on('connect', async () => {
     });
 });
 
-socket.on('data_received', (ack) => {
-    console.log('Collector acknowledged:', ack);
-});
-
 socket.on('connect_error', (error) => {
-    console.error('Failed to connect to collector server:', error.message);
+    console.error('Failed to connect to collector server');
 });
 
 socket.on('disconnect', () => {
-    console.log('Disconnected from collector - buffering mode activated');
+    console.log('Disconnected from collector - buffering mode activated | Heartbeat stopped');
+    
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
 });
 
 // API endpoint 
@@ -76,7 +91,7 @@ app.post('/api/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error processing login attempt:', error);
+        console.error('Error processing login attempt');
         res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -95,12 +110,18 @@ app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, closing server...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     socket.disconnect();
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
     console.log('SIGINT received, closing server...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     socket.disconnect();
     process.exit(0);
 });

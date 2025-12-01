@@ -8,6 +8,7 @@ const DataBuffer = require('./utils/buffer.cjs');
 const buffer = new DataBuffer(100);
 const HONEYPOT_ID = 'node2';
 const PORT = process.env.SSH_PORT || 2222;
+let heartbeatInterval;
 
 const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
     reconnection: true,
@@ -18,6 +19,21 @@ const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3
 socket.on('connect', () => {
     console.log('SSH Honeypot connected to collector server');
     
+    socket.emit('honeypot_status', {
+        honeypotId: HONEYPOT_ID,
+        status: 'online',
+        port: PORT,
+        timestamp: new Date().toISOString()
+    });
+    
+    heartbeatInterval = setInterval(() => {
+        socket.emit('honeypot_heartbeat', {
+            honeypotId: HONEYPOT_ID,
+            port: PORT,
+            timestamp: new Date().toISOString()
+        });
+    }, 5000);   // 5s
+    
     // Flush buffer on connect
     const bufferedData = buffer.flush();
     bufferedData.forEach(data => {
@@ -25,16 +41,17 @@ socket.on('connect', () => {
     });
 });
 
-socket.on('data_received', (ack) => {
-    console.log('Collector acknowledged:', ack);
-});
-
 socket.on('connect_error', (error) => {
-    console.error('Failed to connect to collector server:', error);
+    console.error('Failed to connect to collector server');
 });
 
 socket.on('disconnect', () => {
-    console.log('Disconnected from collector - buffering mode activated');
+    console.log('Disconnected from collector - buffering mode activated | Heartbeat stopped');
+    
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
 });
 
 // Generate a dummy SSH host key
@@ -49,7 +66,6 @@ const hostKey = crypto.generateKeyPairSync('rsa', {
         format: 'pem'
     }
 });
-
 
 const server = new Server({
     hostKeys: [hostKey.privateKey]
@@ -108,7 +124,7 @@ const server = new Server({
             }, 1000 + Math.random() * 2000);
             
         } catch (error) {
-            console.error('Error processing SSH auth attempt:', error);
+            console.error('Error processing SSH auth attempt');
             ctx.reject();
         }
     });
@@ -122,7 +138,7 @@ const server = new Server({
     });
 
     client.on('error', (err) => {
-        console.log('SSH Client error:', err.message);
+        console.log('SSH Client error');
     });
 });
 
@@ -133,6 +149,9 @@ server.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('Shutting down SSH honeypot...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     server.close();
     socket.disconnect();
     process.exit(0);
@@ -140,6 +159,9 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
     console.log('Shutting down SSH honeypot...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     server.close();
     socket.disconnect();
     process.exit(0);

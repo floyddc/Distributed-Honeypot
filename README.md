@@ -37,7 +37,7 @@
   - `npm install` 
   - `npm run test:login`
   - `npm run test:ssh`
-  - `npm run test:evaluator`
+  - `npm run test:gemini`
 
 ### Project tree
 ```

@@ -14,7 +14,11 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root  
+    privileged: true  
+    
   mongo:
     image: mongo:latest
     container_name: mongo

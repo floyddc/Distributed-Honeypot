@@ -8,17 +8,16 @@ const { evaluateFileSeverity } = require('./utils/GeminiAPI.js');
 const buffer = new DataBuffer(100);
 const HONEYPOT_ID = 'node3';
 const PORT = 3003;
-
+let heartbeatInterval;
 const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Save uploaded file on memory, not on disk (<- potential security issue)
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 } 
 });
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist')));
 
 const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3000', {
     reconnection: true,
@@ -29,6 +28,21 @@ const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://collector-server:3
 socket.on('connect', async () => {
     console.log('Honeypot Node 3 connected to collector server');
     
+    socket.emit('honeypot_status', {
+        honeypotId: HONEYPOT_ID,
+        status: 'online',
+        port: PORT,
+        timestamp: new Date().toISOString()
+    });
+    
+    heartbeatInterval = setInterval(() => {
+        socket.emit('honeypot_heartbeat', {
+            honeypotId: HONEYPOT_ID,
+            port: PORT,
+            timestamp: new Date().toISOString()
+        });
+    }, 5000);   // 5s
+    
     // Flush buffer on connect 
     const bufferedData = buffer.flush();
     bufferedData.forEach(data => {
@@ -36,16 +50,17 @@ socket.on('connect', async () => {
     });
 });
 
-socket.on('data_received', (ack) => {
-    console.log('Collector acknowledged:', ack);
-});
-
 socket.on('connect_error', (error) => {
-    console.error('Failed to connect to collector server:', error.message);
+    console.error('Failed to connect to collector server');
 });
 
 socket.on('disconnect', () => {
-    console.log('Disconnected from collector - buffering mode activated');
+    console.log('Disconnected from collector - buffering mode activated | Heartbeat stopped');
+    
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
 });
 
 // API endpoint 
@@ -110,12 +125,18 @@ app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('SIGTERM received, closing server...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     socket.disconnect();
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
     console.log('SIGINT received, closing server...');
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+    }
     socket.disconnect();
     process.exit(0);
 });

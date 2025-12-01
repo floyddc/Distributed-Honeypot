@@ -1,42 +1,69 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import { io } from 'socket.io-client'
+import { ref } from 'vue'
 
 export const useSocketStore = defineStore('socket', () => {
-    const socket = ref(null)
-    const isConnected = ref(false)
-    const attacks = ref([])
+  const socket = ref(null)
+  const attacks = ref([])
+  const honeypots = ref([])
 
-    function connect() {
-        if (socket.value) return
-
-        socket.value = io('http://localhost:3000')
-
-        socket.value.on('connect', () => {
-            isConnected.value = true
-            console.log('Socket connected')
-        })
-
-        socket.value.on('disconnect', () => {
-            isConnected.value = false
-            console.log('Socket disconnected')
-        })
-
-        socket.value.on('honeypot_data', (data) => {     
-            console.log('New attack received:', data)
-            attacks.value.unshift(data)
-            if (attacks.value.length > 50) {
-                attacks.value.pop()
-            }
-        })
+  const loadHoneypots = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/honeypots')
+      if (response.ok) {
+        honeypots.value = await response.json()
+      }
+    } catch (error) {
+      console.error('Failed to load honeypots')
     }
+  }
 
-    function disconnect() {
-        if (socket.value) {
-            socket.value.disconnect()
-            socket.value = null
-        }
+  const connect = () => {
+    socket.value = io('http://localhost:3000')
+
+    socket.value.on('connect', () => {
+      console.log('Connected to collector server')
+      loadHoneypots()
+    })
+
+    socket.value.on('honeypot_data', (data) => {
+      console.log('New attack received:', data)
+      attacks.value.unshift(data)
+      
+      if (attacks.value.length > 50) {
+        attacks.value = attacks.value.slice(0, 50)
+      }
+    })
+
+    socket.value.on('honeypot_status_change', (data) => {
+      console.log('Honeypot status changed:', data)
+      const { honeypotId, status, port } = data
+      
+      const index = honeypots.value.findIndex(h => h.honeypotId === honeypotId)
+      if (index !== -1) {
+        honeypots.value[index].status = status
+        if (port) honeypots.value[index].port = port
+      } else {
+        honeypots.value.push({ honeypotId, status, port })
+      }
+    })
+
+    socket.value.on('disconnect', () => {
+      console.log('Disconnected from collector server')
+    })
+  }
+
+  const disconnect = () => {
+    if (socket.value) {
+      socket.value.disconnect()
     }
+  }
 
-    return { socket, isConnected, attacks, connect, disconnect }
+  return {
+    socket,
+    attacks,
+    honeypots,
+    connect,
+    disconnect
+  }
 })

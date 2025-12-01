@@ -11,12 +11,20 @@ const honeypotSchema = new mongoose.Schema({
         enum: ['online', 'offline', 'faulty'],
         default: 'offline'
     },
+    port: {
+        type: Number,
+        required: true
+    },
+    lastSeen: {
+        type: Date,
+        default: Date.now
+    },
     description: {
         type: String,
         default: ''
     }
 }, { 
-    timestamps: true // Aggiunge automaticamente createdAt e updatedAt
+    timestamps: true 
 });
 
 module.exports = mongoose.model('Honeypot', honeypotSchema);
