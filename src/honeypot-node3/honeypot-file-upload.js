@@ -72,17 +72,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 message: 'No file uploaded'
             });
         }
-
+        const clientIp = req.body.clientIp || 'unknown';
         const fileName = req.file.originalname;
         const fileExtension = fileName.split('.').pop();
-        const publicIp = await getPublicIP();
-        const geoData = await getGeoData(publicIp);
+        const geoData = await getGeoData(clientIp);
         const severity = await evaluateFileSeverity(fileExtension);
 
         const attackData = {
             honeypotId: HONEYPOT_ID,
             port: PORT,
-            sourceIp: publicIp,
+            sourceIp: clientIp,
             severity: severity,
             description: `.${fileExtension} upload`,
             timestamp: new Date().toISOString(),

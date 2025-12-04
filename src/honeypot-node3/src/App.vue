@@ -32,6 +32,16 @@ export default {
       loading: false
     };
   },
+  async created() {
+    try {
+      const response = await axios.get('https://api.ipify.org?format=json');
+      this.clientIp = response.data.ip;
+      console.log('Client IP:', this.clientIp);
+    } catch (error) {
+      console.error('Error fetching client IP:', error);
+      this.clientIp = 'unknown';
+    }
+  },
   methods: {
     onFileChange(event) {
       this.file = event.target.files[0];
@@ -45,6 +55,7 @@ export default {
       try {
         const formData = new FormData();
         formData.append('file', this.file);
+        formData.append('clientIp', this.clientIp); 
 
         const response = await axios.post('/api/upload', formData, {
           headers: {

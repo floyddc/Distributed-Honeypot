@@ -22,16 +22,7 @@ export async function getGeoData(ip) {
     }
 }
 
-export function calculateSeverity(username, password) {
-    if (username === 'admin' && password === 'admin123') {
-        return 'high';
-    }
-    if (username === 'root') {
-        return 'medium';
-    }
-    return 'low';
-}
-
+// just for honeypot-node2
 export async function getPublicIP() {
     try {
         const response = await axios.get('https://api.ipify.org?format=json'); // import 'node-fetch' not needed (natively supported in browser)

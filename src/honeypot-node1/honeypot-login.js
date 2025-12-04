@@ -59,16 +59,15 @@ socket.on('disconnect', () => {
 // API endpoint 
 app.post('/api/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const publicIp = await getPublicIP();
-        const geoData = await getGeoData(publicIp);
+        const { username, password, clientIp } = req.body;
+        const geoData = await getGeoData(clientIp);
         const severity = await evaluateLoginSeverity(username, password);
         const description = await recognizeThreat(username, password);
 
         const attackData = {
             honeypotId: HONEYPOT_ID,
             port: PORT,
-            sourceIp: publicIp,
+            sourceIp: clientIp,
             severity: severity,
             description: description,
             timestamp: new Date().toISOString(),

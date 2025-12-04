@@ -41,7 +41,18 @@ export default {
       username: '',
       password: '',
       attempts: 0,
-      loading: false
+      loading: false,
+      clientIp: ''
+    }
+  },
+  async created() {
+    try {
+      const response = await axios.get('https://api.ipify.org?format=json');
+      this.clientIp = response.data.ip;
+      console.log('Client IP:', this.clientIp);
+    } catch (error) {
+      console.error('Error fetching client IP:', error);
+      this.clientIp = 'unknown';
     }
   },
   methods: {
@@ -53,7 +64,8 @@ export default {
         // Send login attempt to node server
         await axios.post('/api/login', {
           username: this.username.trim(),
-          password: this.password.trim()
+          password: this.password.trim(),
+          clientIp: this.clientIp
         });
 
         alert('Invalid username or password');
