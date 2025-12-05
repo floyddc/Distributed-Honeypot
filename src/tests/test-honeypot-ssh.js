@@ -95,8 +95,10 @@ runner.test('Single SSH authentication attempt', async () => {
     assertEquals(lastAttack.honeypotId, 'node2', 'SSH Honeypot ID should be node2');
     // Check for type 'login' which is what we see in the logs
     assertEquals(lastAttack.type, 'login', 'Attack type should be login');
-    assertEquals(lastAttack.username, 'admin', 'Username should be admin');
-    assert(lastAttack.password, 'Password should be captured');
+
+    // Username and password are in the description for login events
+    assert(lastAttack.description.includes('admin'), 'Description should contain username admin');
+    assert(lastAttack.description.includes('password123'), 'Description should contain password');
 
     console.log('   Single SSH attack successfully captured and verified!');
 });

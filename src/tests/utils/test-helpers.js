@@ -13,17 +13,17 @@ class TestRunner {
     }
 
     async run() {
-        console.log(chalk.blue(`\n🧪 Running ${this.testName}`));
+        console.log(chalk.blue(`\nRunning ${this.testName}`));
         console.log(chalk.gray('='.repeat(50)));
 
         for (const { description, testFn } of this.tests) {
             try {
-                console.log(chalk.yellow(`⏳ ${description}`));
+                console.log(chalk.yellow(`Running: ${description}`));
                 await testFn();
-                console.log(chalk.green(`✅ ${description}`));
+                console.log(chalk.green(`Passed: ${description}`));
                 this.passed++;
             } catch (error) {
-                console.log(chalk.red(`❌ ${description}`));
+                console.log(chalk.red(`Failed: ${description}`));
                 console.log(chalk.red(`   Error: ${error.message}`));
                 this.failed++;
             }
@@ -34,11 +34,11 @@ class TestRunner {
 
     printSummary() {
         console.log(chalk.gray('='.repeat(50)));
-        console.log(chalk.blue(`📊 ${this.testName} Results:`));
-        console.log(chalk.green(`✅ Passed: ${this.passed}`));
-        console.log(chalk.red(`❌ Failed: ${this.failed}`));
-        console.log(chalk.blue(`📈 Total: ${this.tests.length}`));
-        
+        console.log(chalk.blue(`${this.testName} Results:`));
+        console.log(chalk.green(`Passed: ${this.passed}`));
+        console.log(chalk.red(`Failed: ${this.failed}`));
+        console.log(chalk.blue(`Total: ${this.tests.length}`));
+
         if (this.failed > 0) {
             process.exit(1);
         }
