@@ -76,7 +76,11 @@ jobs:
 
     - name: Run Integration Tests
       run: |
-        cd src/tests
+        cd src
+        # Seed the database first to create admin user
+        docker exec collector-server node scripts/seed-db.js
+        
+        cd tests
         npm install
         npm run test:stats
         npm run test:ssh
