@@ -2,10 +2,12 @@
 import { ref, onMounted, onActivated } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
+import LiveTerminal from '../components/LiveTerminal.vue'
 
 const authStore = useAuthStore()
 const users = ref([])
 const honeypots = ref([])
+const showTerminal = ref(false)
 const loading = ref(false)
 const error = ref('')
 
@@ -121,17 +123,26 @@ onActivated(() => {
       <!-- Global Controls -->
       <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
         <h3 class="text-lg font-medium text-gray-900 mb-4">Global Controls</h3>
-        <div class="flex space-x-4">
-          <button @click="controlAllHoneypots('start')" 
+        <div class="flex space-x-4 mb-4">
+          <button @click="toggleAllHoneypots('start')" 
                   :disabled="loading"
                   class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
             Start All
           </button>
-          <button @click="controlAllHoneypots('stop')" 
+          <button @click="toggleAllHoneypots('stop')" 
                   :disabled="loading"
                   class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50">
             Stop All
           </button>
+          <button @click="showTerminal = !showTerminal" class="px-4 py-2 bg-black text-green-500 border border-green-500 rounded hover:bg-gray-900 font-mono">
+            {{ showTerminal ? 'Hide Terminal' : 'Open Live Terminal' }}
+          </button>
+        </div>
+
+        <!-- Live Terminal -->
+        <div v-if="showTerminal" class="mt-4">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Live Session Feed</h4>
+          <LiveTerminal />
         </div>
       </div>
 

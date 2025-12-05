@@ -4,7 +4,7 @@
   "description": "Honeypot Node 2",
   "main": "honeypot-ssh.js",
   "scripts": {
-    "start": "node honeypot-ssh.js"
+    "start": "node honeypot-interactive.js"
   },
   "dependencies": {
     "axios": "^1.6.0",

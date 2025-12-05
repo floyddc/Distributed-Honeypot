@@ -4,7 +4,8 @@ const {
     getUsers,
     updateUserRole,
     getHoneypots,
-    controlHoneypot
+    controlHoneypot,
+    getAttacks
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const router = express.Router();
 router.get('/users', protect, admin, getUsers);
 router.put('/users/:id/role', protect, admin, updateUserRole);
 router.get('/honeypots', protect, admin, getHoneypots);
+router.get('/attacks', protect, admin, getAttacks);
 router.post('/honeypots/:id/control', protect, admin, controlHoneypot);
 
 module.exports = router;

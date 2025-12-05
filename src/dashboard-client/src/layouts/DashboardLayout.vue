@@ -15,9 +15,18 @@ const systemStatus = computed(() => {
 })
 
 const handleLogout = () => {
+  socketStore.disconnect()
   authStore.logout()
   router.push('/login')
 }
+
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  if (authStore.token) {
+    socketStore.connect()
+  }
+})
 </script>
 
 <template>

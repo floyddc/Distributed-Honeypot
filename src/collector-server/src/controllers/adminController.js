@@ -42,6 +42,17 @@ const getHoneypots = async (req, res) => {
     }
 };
 
+const getAttacks = async (req, res) => {
+    try {
+        const Attack = require('../models/Attack');
+        const attacks = await Attack.find({}).sort({ timestamp: -1 }).limit(100);
+        res.json(attacks);
+    } catch (error) {
+        console.error('Error fetching attacks:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 const findDockerContainer = async (honeypotId) => {
     const containers = await docker.listContainers({ all: true });
     const containerNameMap = {
@@ -50,21 +61,21 @@ const findDockerContainer = async (honeypotId) => {
         'node3': 'honeypot-node3'
     };
     const targetName = containerNameMap[honeypotId];
-    if (!targetName) return null; 
-    return containers.find(c => 
+    if (!targetName) return null;
+    return containers.find(c =>
         c.Names.some(name => name.includes(targetName))
     );
 };
 
 const controlHoneypot = async (req, res) => {
     try {
-        const { action } = req.body; 
-        const { id } = req.params; 
+        const { action } = req.body;
+        const { id } = req.params;
 
         if (id === 'all') {
             const honeypots = await Honeypot.find({});
             const results = [];
-            
+
             for (const hp of honeypots) {
                 try {
                     const containerInfo = await findDockerContainer(hp.honeypotId);
@@ -72,9 +83,9 @@ const controlHoneypot = async (req, res) => {
                         results.push({ honeypotId: hp.honeypotId, status: 'container not found' });
                         continue;
                     }
-                    
+
                     const container = docker.getContainer(containerInfo.Id);
-                    
+
                     if (action === 'start') {
                         if (containerInfo.State !== 'running') {
                             await container.start();
@@ -97,7 +108,7 @@ const controlHoneypot = async (req, res) => {
                     results.push({ honeypotId: hp.honeypotId, status: 'error', error: err.message });
                 }
             }
-            
+
             return res.json({ message: `Command ${action} executed on all honeypots`, results });
         }
 
@@ -143,5 +154,6 @@ module.exports = {
     getUsers,
     updateUserRole,
     getHoneypots,
-    controlHoneypot
+    controlHoneypot,
+    getAttacks
 };

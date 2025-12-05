@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*', // Allow all for now, restrict in production
+        origin: '*',
         methods: ['GET', 'POST']
     }
 });
@@ -46,36 +46,42 @@ app.get('/', (req, res) => {
     res.send('Distributed Honeypot Collector Server is running...');
 });
 
-// Maps to track heartbeats and sockets
+// per tracciare i nodi e i loro heartbeat
 const honeypotHeartbeats = new Map();
 const honeypotSockets = new Map();
 
-// Check inactive honeypots
+
+
 setInterval(async () => {
-    const now = Date.now();
     const timeout = 15000;
-    
-    for (const [honeypotId, lastSeen] of honeypotHeartbeats.entries()) {
-        if (now - lastSeen > timeout) {
-            try {
-                await Honeypot.findOneAndUpdate(
-                    { honeypotId },
-                    { status: 'offline' },
-                    { upsert: true }
-                );
-                console.log(`Honeypot ${honeypotId} marked as offline`);
-                
-                io.emit('honeypot_status_change', {
-                    honeypotId,
-                    status: 'offline',
-                    timestamp: new Date().toISOString()
-                });
-                
-                honeypotHeartbeats.delete(honeypotId);
-            } catch (error) {
-                console.error(`Error updating honeypot ${honeypotId}`);
+    const threshold = new Date(Date.now() - timeout);
+
+    try {
+        //trovo i nodi che sono 'online' ma non sono stati visti da threshold
+        const staleHoneypots = await Honeypot.find({
+            status: 'online',
+            lastSeen: { $lt: threshold }
+        });
+
+        for (const hp of staleHoneypots) {
+            hp.status = 'offline';
+            await hp.save();
+
+            console.log(`Honeypot ${hp.honeypotId} marked as offline (stale)`);
+
+            io.emit('honeypot_status_change', {
+                honeypotId: hp.honeypotId,
+                status: 'offline',
+                timestamp: new Date().toISOString()
+            });
+
+            // rimuovo il nodo dal map
+            if (honeypotHeartbeats.has(hp.honeypotId)) {
+                honeypotHeartbeats.delete(hp.honeypotId);
             }
         }
+    } catch (error) {
+        console.error('Error checking stale honeypots:', error);
     }
 }, 10000);
 
@@ -84,18 +90,18 @@ io.on('connection', (socket) => {
 
     socket.on('honeypot_heartbeat', async (data) => {
         const { honeypotId, port, timestamp } = data;
-        
+
         if (!port) {
             console.error(`Heartbeat from ${honeypotId} missing port`);
             return;
         }
-        
+
         honeypotHeartbeats.set(honeypotId, Date.now());
-        
+
         try {
             await Honeypot.findOneAndUpdate(
                 { honeypotId },
-                { 
+                {
                     status: 'online',
                     lastSeen: new Date(timestamp),
                     port: port
@@ -110,64 +116,82 @@ io.on('connection', (socket) => {
 
     socket.on('honeypot_status', async (data) => {
         const { honeypotId, status, port, timestamp } = data;
-        
+
         if (!port) {
             console.error(`Status from ${honeypotId} missing port`);
             return;
         }
-        
+
         honeypotHeartbeats.set(honeypotId, Date.now());
-        
+
         try {
             await Honeypot.findOneAndUpdate(
                 { honeypotId },
-                { 
+                {
                     status,
                     lastSeen: new Date(timestamp),
                     port: port
                 },
                 { upsert: true }
             );
-            
+
             io.emit('honeypot_status_change', {
                 honeypotId,
                 status,
                 port,
                 timestamp
             });
-            
+
             console.log(`Honeypot ${honeypotId} is ${status} on port ${port}`);
         } catch (error) {
             console.error(`Error updating honeypot status for ${honeypotId}`);
         }
     });
 
-    socket.on('honeypot_data', (data) => {
+    socket.on('honeypot_data', async (data) => {
+        // debug
         console.log('Received honeypot data:', data);
-        // Todo: save on DB 
-        io.emit('honeypot_data', data);
+
+        try {
+            // salva sul db l'attacco
+            const Attack = require('./models/Attack');
+            await Attack.create(data);
+        } catch (error) {
+            console.error('Error saving attack:', error);
+        }
+
+        // invia alla dashboard (admin) l'attacco
+        io.emit('new_attack', data);
+    });
+
+
+    socket.on('session_data', (data) => {
+        console.log(`[DEBUG] Received session_data from ${data.honeypotId}:`, data.data);
+
+        // invia alla dashboard (admin) i dati della sessione
+        io.emit('live_session_feed', data);
     });
 
     socket.on('disconnect', async () => {
         console.log('User disconnected:', socket.id);
-        
+
         for (const [honeypotId, socketId] of honeypotSockets.entries()) {
             if (socketId === socket.id) {
                 console.log(`Honeypot ${honeypotId} disconnected`);
-                
+
                 try {
                     await Honeypot.findOneAndUpdate(
                         { honeypotId },
                         { status: 'offline' },
                         { upsert: true }
                     );
-                    
+
                     io.emit('honeypot_status_change', {
                         honeypotId,
                         status: 'offline',
                         timestamp: new Date().toISOString()
                     });
-                    
+
                     honeypotHeartbeats.delete(honeypotId);
                     honeypotSockets.delete(honeypotId);
                 } catch (error) {

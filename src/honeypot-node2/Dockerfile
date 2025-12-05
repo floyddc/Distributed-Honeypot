@@ -12,4 +12,4 @@ COPY honeypot-node2 .
 
 EXPOSE 2222
 
-CMD ["node", "honeypot-ssh.js"]
+CMD ["npm", "start"]
