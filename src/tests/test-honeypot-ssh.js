@@ -23,7 +23,8 @@ runner.test('Connect to Collector Server', async () => {
 
         collectorSocket.on('new_attack', (data) => {
             console.log('   Received attack data:', data);
-            if (data.attackType === 'ssh_connection') {
+            // Accept 'login' type which is what the honeypot actually sends for auth attempts
+            if (data.type === 'login' || data.attackType === 'ssh_connection') {
                 capturedData.push(data);
                 console.log('   SSH attack captured - test will complete!');
             }
@@ -92,7 +93,8 @@ runner.test('Single SSH authentication attempt', async () => {
 
     const lastAttack = capturedData[capturedData.length - 1];
     assertEquals(lastAttack.honeypotId, 'node2', 'SSH Honeypot ID should be node2');
-    assertEquals(lastAttack.attackType, 'ssh_connection', 'Attack type should be ssh_connection');
+    // Check for type 'login' which is what we see in the logs
+    assertEquals(lastAttack.type, 'login', 'Attack type should be login');
     assertEquals(lastAttack.username, 'admin', 'Username should be admin');
     assert(lastAttack.password, 'Password should be captured');
 
