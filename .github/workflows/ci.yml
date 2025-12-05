@@ -53,3 +53,29 @@ jobs:
 
     - name: Build Vue App
       run: npm run build
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [build-server, build-client]
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Start Containers
+      run: |
+        cd src
+        docker-compose up -d --build
+        sleep 30 # Wait for services to be ready
+
+    - name: Run Integration Tests
+      run: |
+        cd src/tests
+        npm install
+        npm run test:stats
+        npm run test:ssh
+
+    - name: Stop Containers
+      if: always()
+      run: |
+        cd src
+        docker-compose down
