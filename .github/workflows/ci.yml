@@ -61,6 +61,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Create .env file
+      run: |
+        cd src
+        echo "GEMINI_API_KEY=dummy_key_for_ci" > .env
+        echo "MONGO_URI=mongodb://mongo:27017/distributed-honeypot" >> .env
+        echo "PORT=3000" >> .env
+
     - name: Start Containers
       run: |
         cd src
