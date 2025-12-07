@@ -27,7 +27,6 @@ jobs:
     - name: Install Dependencies
       run: npm ci
 
-    # Qui potremmo aggiungere 'npm test' se avessimo dei test unitari
     - name: Lint (Optional)
       run: echo "No linting configured yet"
 

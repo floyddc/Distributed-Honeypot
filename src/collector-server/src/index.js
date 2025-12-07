@@ -38,6 +38,17 @@ app.get('/api/honeypots', async (req, res) => {
     }
 });
 
+app.get('/api/attacks', async (req, res) => {
+    try {
+        const Attack = require('./models/Attack');
+        const attacks = await Attack.find({}).sort({ timestamp: -1 }).limit(50);
+        res.json(attacks);
+    } catch (error) {
+        console.error('Error fetching attacks:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // Make io accessible in routes
 app.set('io', io);
 
@@ -46,18 +57,14 @@ app.get('/', (req, res) => {
     res.send('Distributed Honeypot Collector Server is running...');
 });
 
-// per tracciare i nodi e i loro heartbeat
 const honeypotHeartbeats = new Map();
 const honeypotSockets = new Map();
-
-
 
 setInterval(async () => {
     const timeout = 15000;
     const threshold = new Date(Date.now() - timeout);
 
     try {
-        //trovo i nodi che sono 'online' ma non sono stati visti da threshold
         const staleHoneypots = await Honeypot.find({
             status: 'online',
             lastSeen: { $lt: threshold }
@@ -75,7 +82,6 @@ setInterval(async () => {
                 timestamp: new Date().toISOString()
             });
 
-            // rimuovo il nodo dal map
             if (honeypotHeartbeats.has(hp.honeypotId)) {
                 honeypotHeartbeats.delete(hp.honeypotId);
             }
@@ -149,18 +155,15 @@ io.on('connection', (socket) => {
     });
 
     socket.on('honeypot_data', async (data) => {
-        // debug
         console.log('Received honeypot data:', data);
 
         try {
-            // salva sul db l'attacco
-            const Attack = require('./models/Attack');
+            const Attack = require('./models/Attack');  // Save on DB
             await Attack.create(data);
         } catch (error) {
             console.error('Error saving attack:', error);
         }
 
-        // invia alla dashboard (admin) l'attacco
         io.emit('new_attack', data);
     });
 
@@ -168,7 +171,6 @@ io.on('connection', (socket) => {
     socket.on('session_data', (data) => {
         console.log(`[DEBUG] Received session_data from ${data.honeypotId}:`, data.data);
 
-        // invia alla dashboard (admin) i dati della sessione
         io.emit('live_session_feed', data);
     });
 

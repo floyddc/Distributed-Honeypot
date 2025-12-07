@@ -22,14 +22,24 @@ export const useSocketStore = defineStore('socket', () => {
 
   const loadAttacks = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/admin/attacks', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      const token = localStorage.getItem('token')
+      console.log('Loading attacks with token:', token ? 'present' : 'missing')
+      
+      const response = await fetch('http://localhost:3000/api/attacks', {
+        headers: { 'Authorization': `Bearer ${token}` }
       })
+      
+      console.log('Attack response status:', response.status)
+      
       if (response.ok) {
-        attacks.value = await response.json()
+        const data = await response.json()
+        console.log('Loaded attacks:', data.length)
+        attacks.value = data
+      } else {
+        console.error('Failed to load attacks, status:', response.status)
       }
     } catch (error) {
-      console.error('Failed to load attacks')
+      console.error('Failed to load attacks:', error)
     }
   }
 
@@ -51,7 +61,10 @@ export const useSocketStore = defineStore('socket', () => {
       }
     })
 
-
+    socket.value.on('attacks_cleared', (data) => {
+      console.log('Attacks cleared:', data.message)
+      attacks.value = [] 
+    })
 
     socket.value.on('honeypot_status_change', (data) => {
       console.log('Honeypot status changed:', data)

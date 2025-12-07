@@ -134,15 +134,6 @@ onActivated(() => {
                   class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50">
             Stop All
           </button>
-          <button @click="showTerminal = !showTerminal" class="px-4 py-2 bg-black text-green-500 border border-green-500 rounded hover:bg-gray-900 font-mono">
-            {{ showTerminal ? 'Hide Terminal' : 'Open Live Terminal' }}
-          </button>
-        </div>
-
-        <!-- Live Terminal -->
-        <div v-if="showTerminal" class="mt-4">
-          <h4 class="text-sm font-medium text-gray-700 mb-2">Live Session Feed</h4>
-          <LiveTerminal />
         </div>
       </div>
 

@@ -53,6 +53,28 @@ const getAttacks = async (req, res) => {
     }
 };
 
+const clearAttacks = async (req, res) => {
+    try {
+        const Attack = require('../models/Attack');
+        const result = await Attack.deleteMany({});
+        console.log(`Cleared ${result.deletedCount} attacks from database`);
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('attacks_cleared', { 
+                message: 'All attacks have been cleared',
+                timestamp: new Date().toISOString()
+            });
+        }
+        res.json({ 
+            message: 'All attacks cleared successfully', 
+            deletedCount: result.deletedCount 
+        });
+    } catch (error) {
+        console.error('Error clearing attacks:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 const findDockerContainer = async (honeypotId) => {
     const containers = await docker.listContainers({ all: true });
     const containerNameMap = {
@@ -155,5 +177,6 @@ module.exports = {
     updateUserRole,
     getHoneypots,
     controlHoneypot,
-    getAttacks
+    getAttacks,
+    clearAttacks
 };

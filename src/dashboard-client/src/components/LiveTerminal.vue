@@ -6,17 +6,15 @@ import 'xterm/css/xterm.css'
 import { useSocketStore } from '../stores/socket'
 
 const socketStore = useSocketStore()
-const sessions = ref({}) // { sessionId: { term, fitAddon, containerRef } }
+const sessions = ref({}) 
 const activeSessionId = ref(null)
-const terminalRefs = ref({}) // Map of sessionId -> DOM element
+const terminalRefs = ref({}) 
 
-// Function to create a new terminal session
 const createSession = async (sessionId) => {
     if (sessions.value[sessionId]) return
 
     console.log(`Creating new terminal session: ${sessionId}`)
     
-    // Create new session object
     sessions.value[sessionId] = {
         id: sessionId,
         term: null,
@@ -24,12 +22,10 @@ const createSession = async (sessionId) => {
         buffer: ''
     }
 
-    // Set as active if it's the first one
     if (!activeSessionId.value) {
         activeSessionId.value = sessionId
     }
 
-    // Wait for DOM update to ensure container exists
     await nextTick()
 
     const term = new Terminal({
@@ -45,7 +41,6 @@ const createSession = async (sessionId) => {
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
 
-    // Mount to the specific container
     const container = terminalRefs.value[sessionId]
     if (container) {
         term.open(container)
@@ -80,7 +75,6 @@ const setupListener = () => {
 
 const switchTab = (sessionId) => {
     activeSessionId.value = sessionId
-    // Re-fit the terminal when it becomes visible
     nextTick(() => {
         const session = sessions.value[sessionId]
         if (session && session.fitAddon) {

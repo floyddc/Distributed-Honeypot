@@ -15,8 +15,8 @@ const attackSchema = new mongoose.Schema({
     },
     severity: {
         type: String,
-        enum: ['low', 'medium', 'critical'],
-        default: 'low'
+        enum: ['low', 'medium', 'critical', 'unknown'],
+        default: 'unknown'
     },
     description: {
         type: String
