@@ -54,7 +54,7 @@ const clearAttacks = async () => {
 <template>
   <DashboardLayout>
     <div class="mb-4">
-      <h2 class="text-xl font-bold text-gray-800">Overview</h2>
+      <h2 class="text-xl font-bold text-[#5fbfbb]">Overview</h2>
     </div>
 
     <div class="grid grid-cols-1 gap-4 mb-6">
@@ -62,9 +62,9 @@ const clearAttacks = async () => {
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         <!-- Total Attacks -->
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
           <div class="flex items-center justify-between mb-1">
-            <h3 class="text-gray-500 text-xs font-medium uppercase">Total Attacks</h3>
+            <h3 class="text-[#5fbfbb] text-xs font-medium uppercase">Total Attacks</h3>
             <button 
               v-if="isAdmin"
               @click="clearAttacks"
@@ -75,43 +75,43 @@ const clearAttacks = async () => {
             </button>
           </div>
           <div class="mt-1">
-            <p class="text-2xl font-bold text-gray-900">{{ socketStore.attacks.length }}</p>
+            <p class="text-2xl font-bold text-gray-100">{{ socketStore.attacks.length }}</p>
           </div>
         </div>
 
         <!-- Active Honeypots -->
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-gray-500 text-xs font-medium uppercase">Active Honeypots</h3>
+        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase">Active Honeypots</h3>
           <div class="mt-1">
-            <p class="text-2xl font-bold text-gray-900">{{ activeHoneypots }} / {{ totalHoneypots }}</p>
+            <p class="text-2xl font-bold text-gray-100">{{ activeHoneypots }} / {{ totalHoneypots }}</p>
           </div>
         </div>
 
         <!-- Live Terminal Button -->
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-gray-500 text-xs font-medium uppercase mb-2">Live SSH Honeypot</h3>
+        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase mb-2">Live SSH Honeypot</h3>
           <button 
             @click="showTerminal = !showTerminal"
             class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
             :class="showTerminal 
               ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-green-600 hover:bg-green-700 text-white'"
+              : 'bg-[#5fbfbb] hover:bg-[#4fa9a5] text-[rgba(22,21,21,0.9)]'"
           >
             {{ showTerminal ? '✕ Close' : '▶ Open' }}
           </button>
         </div>
 
         <!-- Live Login Screen Button -->
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-gray-500 text-xs font-medium uppercase mb-2">Live Login Honeypot</h3>
+        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase mb-2">Live Login Honeypot</h3>
           <button 
             @click="showLiveScreen = !showLiveScreen"
             class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
             :class="showLiveScreen 
               ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white'"
+              : 'bg-[#5fbfbb] hover:bg-[#4fa9a5] text-[rgba(22,21,21,0.9)]'"
           >
-            {{ showLiveScreen ? '✕ Close' : '🖥️ Open' }}
+            {{ showLiveScreen ? '✕ Close' : '▶ Open' }}
           </button>
         </div>
 
@@ -120,16 +120,16 @@ const clearAttacks = async () => {
 
     <!-- Live Terminal -->
     <div v-if="showTerminal" class="mb-6">
-      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <h3 class="text-base font-medium text-gray-900 mb-3">Live SSH Sessions</h3>
+      <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
+        <h3 class="text-base font-medium text-[#5fbfbb] mb-3">Live SSH Sessions</h3>
         <LiveTerminal />
       </div>
     </div>
 
     <!-- Live Screen -->
     <div v-if="showLiveScreen" class="mb-6">
-      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <h3 class="text-base font-medium text-gray-900 mb-3">Live Attacker Screen</h3>
+      <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
+        <h3 class="text-base font-medium text-[#5fbfbb] mb-3">Live Attacker Screen</h3>
         <LiveScreen />
       </div>
     </div>

@@ -35,8 +35,8 @@ onMounted(() => {
         v-for="(session, id) in sessions" 
         :key="id"
         @click="activeSession = id"
-        class="px-4 py-2 rounded text-sm whitespace-nowrap"
-        :class="activeSession === id ? 'bg-blue-600 text-white' : 'bg-gray-200'"
+        class="px-4 py-2 rounded text-sm whitespace-nowrap font-semibold"
+        :class="activeSession === id ? 'bg-[#5fbfbb] text-[rgba(22,21,21,0.9)]' : 'bg-[rgba(22,21,21,0.8)] text-gray-300 border border-[#5fbfbb]'"
       >
         {{ session.honeypotId }} - {{ id.slice(0, 8) }}...
       </button>
@@ -44,40 +44,40 @@ onMounted(() => {
     
     <!-- Virtual Screen -->
     <div v-if="activeSession && sessions[activeSession]" 
-         class="relative bg-white border rounded-lg shadow-lg mx-auto"
+         class="relative bg-white border-2 border-[#5fbfbb] rounded-lg shadow-lg mx-auto"
          style="width: 600px; height: 450px;">
       
       <!-- Login page -->
-      <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
-        <div class="bg-white p-6 rounded-lg shadow-xl" style="max-width: 300px; width: 100%;">
-          <h2 class="text-xl font-bold mb-3">Login</h2>
+      <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#5fbfbb] to-[rgba(22,21,21,0.8)]">
+        <div class="bg-white p-6 rounded-lg shadow-xl border-2 border-[#5fbfbb]" style="max-width: 300px; width: 100%;">
+          <h2 class="text-xl font-bold mb-3 text-[rgba(22,21,21,0.9)]">Login</h2>
           
           <div class="form-group mb-3">
-            <label class="block mb-1 text-xs">Username:</label>
+            <label class="block mb-1 text-xs text-gray-700">Username:</label>
             <input 
               :value="sessions[activeSession].fields.username"
               placeholder="Enter your username"
-              class="w-full px-3 py-1.5 border rounded text-sm"
+              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
               readonly
             />
           </div>
           
           <div class="form-group mb-3">
-            <label class="block mb-1 text-xs">Password:</label>
+            <label class="block mb-1 text-xs text-gray-700">Password:</label>
             <input 
               :value="sessions[activeSession].fields.password"
               type="text"
               placeholder="Enter your password"
-              class="w-full px-3 py-1.5 border rounded text-sm"
+              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
               readonly
             />
           </div>
           
-          <button class="w-full bg-blue-600 text-white py-1.5 rounded mb-3 text-sm">
+          <button class="w-full bg-[#5fbfbb] text-white py-1.5 rounded mb-3 text-sm font-semibold hover:bg-[#4fa9a5]">
             Login
           </button>
           
-          <p class="text-xs text-gray-600">Forgot your password? <a href="#" class="text-blue-600">Reset here</a></p>
+          <p class="text-xs text-gray-600">Forgot your password? <a href="#" class="text-[#5fbfbb] font-semibold">Reset here</a></p>
           <small class="text-xs text-gray-500">Attempts: 0</small>
         </div>
       </div>
@@ -102,15 +102,15 @@ onMounted(() => {
     </div>
     
     <!-- Empty State -->
-    <div v-else class="relative bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg mx-auto flex items-center justify-center"
+    <div v-else class="relative bg-[rgba(22,21,21,0.9)] border-2 border-dashed border-[#5fbfbb] rounded-lg mx-auto flex items-center justify-center"
          style="width: 500px; height: 350px;">
-      <div class="text-center text-gray-500">
+      <div class="text-center text-[#5fbfbb]">
         <svg class="mx-auto h-12 w-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
         <h3 class="text-base font-medium mb-2">Waiting for visitors...</h3>
-        <p class="text-xs">Honeypot Node 1</p>
+        <p class="text-xs text-gray-400">Honeypot Node 1</p>
       </div>
     </div>
   </div>

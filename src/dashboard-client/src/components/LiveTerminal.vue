@@ -31,8 +31,10 @@ const createSession = async (sessionId) => {
     const term = new Terminal({
         cursorBlink: true,
         theme: {
-            background: '#1e1e1e',
-            foreground: '#00ff00'
+            background: 'rgba(22, 21, 21, 0.95)',
+            foreground: '#5fbfbb',
+            cursor: '#5fbfbb',
+            cursorAccent: 'rgba(22, 21, 21, 0.8)'
         },
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         fontSize: 14
@@ -108,15 +110,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-col w-full h-96 bg-black rounded-lg overflow-hidden border border-gray-700 shadow-lg">
+    <div class="flex flex-col w-full h-96 bg-[rgba(22,21,21,0.95)] rounded-lg overflow-hidden border-2 border-[#5fbfbb] shadow-lg">
         <!-- Tabs -->
-        <div class="flex bg-gray-900 border-b border-gray-700 overflow-x-auto">
+        <div class="flex bg-[rgba(22,21,21,0.98)] border-b-2 border-[#5fbfbb] overflow-x-auto">
             <button 
                 v-for="(session, id) in sessions" 
                 :key="id"
                 @click="switchTab(id)"
-                class="px-4 py-2 text-xs font-mono border-r border-gray-700 hover:bg-gray-800 transition-colors"
-                :class="activeSessionId === id ? 'bg-gray-800 text-green-400' : 'text-gray-400'"
+                class="px-4 py-2 text-xs font-mono border-r border-[#5fbfbb] hover:bg-[rgba(95,191,187,0.2)] transition-colors"
+                :class="activeSessionId === id ? 'bg-[rgba(95,191,187,0.2)] text-[#5fbfbb]' : 'text-gray-400'"
             >
                 {{ id.slice(0, 8) }}...
             </button>
@@ -126,7 +128,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Terminal Containers -->
-        <div class="relative flex-1 bg-[#1e1e1e] overflow-hidden">
+        <div class="relative flex-1 bg-[rgba(22,21,21,0.95)] overflow-hidden">
             <div 
                 v-for="(session, id) in sessions" 
                 :key="id"
@@ -136,7 +138,7 @@ onUnmounted(() => {
             ></div>
             
             <!-- Empty State -->
-            <div v-if="Object.keys(sessions).length === 0" class="flex items-center justify-center h-full text-gray-500 font-mono text-sm">
+            <div v-if="Object.keys(sessions).length === 0" class="flex items-center justify-center h-full text-[#5fbfbb] font-mono text-sm">
                 > No active sessions
             </div>
         </div>
