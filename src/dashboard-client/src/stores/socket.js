@@ -67,6 +67,20 @@ export const useSocketStore = defineStore('socket', () => {
       attacks.value = [] 
     })
 
+    socket.value.on('user_deleted', (data) => {
+      console.log('User deleted event received:', data)
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      if (currentUser._id === data.userId) {
+        alert(data.message || 'Your account has been deleted by an admin')
+         setTimeout(() => {
+            localStorage.removeItem('user')
+            localStorage.removeItem('token')
+            window.location.href = '/login'
+          }, 3000) // 3s
+      }
+    })
+
     socket.value.on('honeypot_status_change', (data) => {
       console.log('Honeypot status changed:', data)
       const { honeypotId, status, port } = data
@@ -135,6 +149,20 @@ export const useSocketStore = defineStore('socket', () => {
         case 'submit':
           console.log(`User submitted form in session ${sessionId}`)
           break
+      }
+    })
+
+    socket.value.on('role_updated', (data) => {
+      console.log('Role updated event received:', data)
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      if (currentUser._id === data.userId) {
+        currentUser.role = data.newRole
+        localStorage.setItem('user', JSON.stringify(currentUser))
+        alert(data.message || `You have been promoted to ${data.newRole}`)
+        setTimeout(() => {
+          window.location.reload()
+        }, 3000) // 3s
       }
     })
 

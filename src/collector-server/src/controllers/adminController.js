@@ -17,8 +17,22 @@ const updateUserRole = async (req, res) => {
         const user = await User.findById(req.params.id);
 
         if (user) {
+            const oldRole = user.role;
             user.role = req.body.role || user.role;
             const updatedUser = await user.save();
+            
+            if (oldRole !== updatedUser.role) {
+                const io = req.app.get('io');
+                if (io) {
+                    io.emit('role_updated', {
+                        userId: updatedUser._id.toString(),
+                        newRole: updatedUser.role,
+                        message: `You have been promoted to ${updatedUser.role}`
+                    });
+                }
+                console.log(`User ${updatedUser.username} promoted to ${updatedUser.role}`);
+            }
+            
             res.json({
                 _id: updatedUser._id,
                 username: updatedUser.username,
@@ -172,11 +186,50 @@ const controlHoneypot = async (req, res) => {
     }
 };
 
+const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role === 'admin') {
+            const adminCount = await User.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                return res.status(400).json({ message: 'Cannot delete the last admin user' });
+            }
+        }
+
+        if (user._id.toString() === req.user._id.toString()) {
+            return res.status(400).json({ message: 'Cannot delete your own account' });
+        }
+
+        const deletedUserId = user._id.toString();
+        await User.findByIdAndDelete(req.params.id);
+        
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('user_deleted', { 
+                userId: deletedUserId,
+                message: 'Your account has been deleted by an admin'
+            });
+        }
+        
+        console.log(`User ${user.username} deleted successfully`);
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getUsers,
     updateUserRole,
     getHoneypots,
     controlHoneypot,
     getAttacks,
-    clearAttacks
+    clearAttacks,
+    deleteUser
 };

@@ -64,8 +64,43 @@ const getMe = async (req, res) => {
     res.status(200).json(req.user);
 };
 
+const deleteOwnAccount = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role === 'admin') {
+            const adminCount = await User.countDocuments({ role: 'admin' });
+            if (adminCount <= 1) {
+                return res.status(400).json({ message: 'Cannot delete your account. You are the last admin. Promote another user to admin first.' });
+            }
+        }
+
+        const deletedUserId = user._id.toString();
+        await User.findByIdAndDelete(req.user._id);
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('user_deleted', { 
+                userId: deletedUserId,
+                message: 'Your account has been deleted'
+            });
+        }
+
+        console.log(`User ${user.username} deleted their own account`);
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting own account:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
-    getMe
+    getMe,
+    deleteOwnAccount
 };

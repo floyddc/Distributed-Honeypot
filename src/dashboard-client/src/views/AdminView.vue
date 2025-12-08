@@ -88,6 +88,31 @@ const controlAllHoneypots = async (action) => {
   await controlHoneypot('all', action)
 }
 
+const deleteUser = async (userId) => {
+  if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    return
+  }
+  
+  try {
+    const response = await fetch(`http://localhost:3000/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    if (response.ok) {
+      await fetchUsers()
+    } else {
+      const data = await response.json()
+      error.value = data.message || 'Failed to delete user'
+    }
+  } catch (e) { 
+    console.error(e)
+    error.value = 'Failed to delete user'
+  }
+}
+
 onMounted(() => {
   console.log('AdminView mounted')
   fetchUsers()
@@ -211,10 +236,14 @@ onActivated(() => {
                     {{ user.role }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button v-if="user.role !== 'admin'" @click="promoteUser(user._id)" 
                           class="text-[#5fbfbb] hover:text-[#4fa9a5] font-semibold">
-                    Promote to Admin
+                    to Admin
+                  </button>
+                  <button v-if="user.role !== 'admin'" @click="deleteUser(user._id)" 
+                          class="text-red-400 hover:text-red-300 font-semibold">
+                    Delete
                   </button>
                 </td>
               </tr>

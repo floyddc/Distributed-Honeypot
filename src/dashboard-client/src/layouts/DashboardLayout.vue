@@ -20,6 +20,33 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+const handleDeleteAccount = async () => {
+  const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.')
+  if (!confirmed) return
+
+  try {
+    const response = await fetch('http://localhost:3000/api/auth/me', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (response.ok) {
+      alert('Your account has been deleted successfully.')
+      socketStore.disconnect()
+      authStore.logout()
+      router.push('/login')
+    } else {
+      const data = await response.json()
+      alert(data.message || 'Failed to delete account')
+    }
+  } catch (error) {
+    console.error('Error deleting account:', error)
+    alert('Failed to delete account')
+  }
+}
+
 import { onMounted } from 'vue'
 
 onMounted(() => {
@@ -89,6 +116,10 @@ onMounted(() => {
               System {{ systemStatus === 'online' ? 'Online' : 'Offline' }}
             </span>
           </div>
+
+          <button @click="handleDeleteAccount" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
+            Delete Account
+          </button>
 
           <button @click="handleLogout" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
             Logout

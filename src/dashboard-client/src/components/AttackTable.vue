@@ -1,10 +1,16 @@
 <script setup>
+import { ref } from 'vue'
+import LocationMapModal from './LocationMapModal.vue'
+
 const props = defineProps({
   attacks: {
     type: Array,
     required: true
   }
 })
+
+const showModal = ref(false)
+const selectedLocation = ref(null)
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('it-IT', {
@@ -21,6 +27,24 @@ const getSeverityClass = (severity) => {
     case 'low': return 'bg-[rgba(95,191,187,0.3)] text-[#5fbfbb]'
     default: return 'bg-[rgba(95,191,187,0.3)] text-[#5fbfbb]'
   }
+}
+
+const openLocationModal = (attack) => {
+  if (attack.geoData?.lat && attack.geoData?.lon) {
+    selectedLocation.value = {
+      lat: attack.geoData.lat,
+      lon: attack.geoData.lon,
+      city: attack.geoData.city,
+      country: attack.geoData.country,
+      sourceIp: attack.sourceIp
+    }
+    showModal.value = true
+  }
+}
+
+const closeModal = () => {
+  showModal.value = false
+  selectedLocation.value = null
 }
 </script>
 
@@ -56,13 +80,19 @@ const getSeverityClass = (severity) => {
                 {{ attack.severity.toUpperCase() }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-              <span v-if="attack.geoData?.city && attack.geoData?.country">
-                {{ attack.geoData.city }}, {{ attack.geoData.country }}
-              </span>
-              <span v-else-if="attack.geoData?.country">
-                {{ attack.geoData.country }}
-              </span>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <button 
+                v-if="attack.geoData?.lat && attack.geoData?.lon"
+                @click="openLocationModal(attack)"
+                class="text-[#5fbfbb] hover:text-[#7fd9d5] hover:underline focus:outline-none focus:ring-2 focus:ring-[#5fbfbb] focus:ring-offset-2 focus:ring-offset-[rgba(22,21,21,0.9)] rounded px-2 py-1 transition-colors"
+              >
+                <span v-if="attack.geoData?.city && attack.geoData?.country">
+                  {{ attack.geoData.city }}, {{ attack.geoData.country }}
+                </span>
+                <span v-else-if="attack.geoData?.country">
+                  {{ attack.geoData.country }}
+                </span>
+              </button>
               <span v-else class="text-gray-500">Unknown</span>
             </td>
           </tr>
@@ -74,5 +104,11 @@ const getSeverityClass = (severity) => {
         </tbody>
       </table>
     </div>
+
+    <LocationMapModal 
+      v-if="showModal" 
+      :location="selectedLocation"
+      @close="closeModal"
+    />
   </div>
 </template>
