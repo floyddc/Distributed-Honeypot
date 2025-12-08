@@ -1,43 +1,68 @@
 # NOTES (building up this project)
 
-### How to turn on/off the system
-- `cd src`
-- `docker-compose build`
-- `docker-compose up` to run all containers (**collector server, honeypot nodes** and **MongoDB**).
-  - `docker-compose up -d` to run all in background.
-  - `docker-compose logs -f collector-server honeypot-node1 honeypot-node2` to see only those logs.
-- Visit http://localhost:3000 to check if the collector server is up.
-- `cd dashboard-client`
-  - `npm run dev` to run a **client** and open the **dashboard**.
-- `docker-compose down` to turn off all containers.
-- `docker ps -a` to list all containers.
-- `docker rm <ID>` to delete a specific container.
+## Quick Start & Commands
 
-## How to connect to MongoDB
-- `mongosh mongodb://localhost:27017/distributed-honeypot`
-- `show collections` to list tables.
-- `db.users.find()` to list users.
+###  Docker Management
+> **Important:** Always run these commands from the `src` directory!
+> ```bash
+> cd src
+> ```
 
-### How Honeypot-node1 works
-- Visit http://localhost:3001 to visit the fake login page.
-- Interact with it and check logs on Terminal.
+*   **Start Everything (Background):**
+    ```bash
+    docker-compose up -d --build
+    ```
+*   **Stop Everything:**
+    ```bash
+    docker-compose down
+    ```
+*   **View Logs (Real-time):**
+    ```bash
+    docker-compose logs -f
+    ```
+*   **Restart Specific Container:**
+    ```bash
+    docker-compose up -d --build <container_name>
+    # Example: docker-compose up -d --build honeypot-node2
+    ```
 
-### How Honeypot-node2 works
-- Try to connect to the SSH server: `ssh -p 2222 <any username>@localhost`
-- Check logs on Terminal.
-- _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
+### Database (MongoDB)
+*   **Access Shell:**
+    ```bash
+    docker exec -it mongo mongosh
+    ```
+*   **Useful Commands (inside shell):**
+    ```javascript
+    use distributed-honeypot
+    db.attacks.find().sort({ timestamp: -1 }).limit(5) 
+    db.honeypots.find()                                 
+    ```
 
-### How Honeypot-node3 works
-- Visit http://localhost:3003 to visit the fake file uploader.
-- Upload a file and check logs on Terminal.
+### Honeypot Interaction
+*   **Node 1 (Web Login):** http://localhost:3001
+*   **Node 2 (SSH Interactive):**
+    ```bash
+    ssh -p 2222 root@localhost
+    # Password: 123456
+    ```
+    *Reset host key if needed:* `ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[localhost]:2222"`
+    command: '''bash -c 'ssh-keygen -R "[localhost]:2222"'``
+*   **Node 3 (File Upload):** http://localhost:3003
 
-### How to run tests
-- Turn on the system with `docker-compose up`
-- In another Terminal: `cd tests`
-  - `npm install` 
-  - `npm run test:login`
-  - `npm run test:ssh`
-  - `npm run test:gemini`
+### Dashboard & Backend (Local Dev)
+*   **Dashboard:** http://localhost:5173 (if running `npm run dev` in `dashboard-client`)
+*   **Collector API:** http://localhost:3000
+
+### Running Tests
+1.  Ensure system is running (`docker-compose up -d`)
+2.  `cd tests`
+3.  `npm install`
+4.  Run specific tests:
+    ```bash
+    npm run test:login
+    npm run test:ssh
+    npm run test:gemini
+    ```
 
 ### Project tree
 ```

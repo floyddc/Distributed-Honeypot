@@ -77,7 +77,7 @@ jobs:
     - name: Run Integration Tests
       run: |
         cd src
-        # Seed the database first to create admin user
+        # Seed the database prima per creare l'admin
         docker exec collector-server node scripts/seed-db.js
         
         cd tests
