@@ -59,6 +59,7 @@ app.get('/', (req, res) => {
 
 const honeypotHeartbeats = new Map();
 const honeypotSockets = new Map();
+const activeSessions = new Map(); 
 
 setInterval(async () => {
     const timeout = 15000;
@@ -93,6 +94,8 @@ setInterval(async () => {
 
 io.on('connection', (socket) => {
     console.log('A user/honeypot connected:', socket.id);
+
+    socket.emit('active_sessions', Array.from(activeSessions.values()));
 
     socket.on('honeypot_heartbeat', async (data) => {
         const { honeypotId, port, timestamp } = data;
@@ -167,12 +170,51 @@ io.on('connection', (socket) => {
         io.emit('new_attack', data);
     });
 
-
     socket.on('session_data', (data) => {
         console.log(`[DEBUG] Received session_data from ${data.honeypotId}:`, data.data);
 
         io.emit('live_session_feed', data);
     });
+
+    socket.on('honeypot_interaction', (data) => {
+        console.log(`[INTERACTION] ${data.type} on ${data.honeypotId}`);
+        
+        const { sessionId } = data;
+        
+        if (!activeSessions.has(sessionId)) {
+            activeSessions.set(sessionId, {
+                sessionId,
+                honeypotId: data.honeypotId,
+                startTime: Date.now(),
+                lastActivity: Date.now()
+            });
+        } else {
+            activeSessions.get(sessionId).lastActivity = Date.now();
+        }
+        
+        if (data.type === 'session_end') {
+            activeSessions.delete(sessionId);
+        }
+        
+        io.emit('live_interaction', data);
+    });
+
+    setInterval(() => {
+        const timeout = 10000; // 10s
+        const now = Date.now();
+        
+        for (const [sessionId, session] of activeSessions.entries()) {
+            if (now - session.lastActivity > timeout) {
+                console.log(`[SESSION] Removing inactive session: ${sessionId}`);
+                activeSessions.delete(sessionId);
+                io.emit('live_interaction', {
+                    sessionId,
+                    type: 'session_end',
+                    timestamp: Date.now()
+                });
+            }
+        }
+    }, 10000);
 
     socket.on('disconnect', async () => {
         console.log('User disconnected:', socket.id);

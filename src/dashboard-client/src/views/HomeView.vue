@@ -4,12 +4,14 @@ import DashboardLayout from '../layouts/DashboardLayout.vue'
 import AttackTable from '../components/AttackTable.vue'
 import DashboardCharts from '../components/DashboardCharts.vue'
 import LiveTerminal from '../components/LiveTerminal.vue'
+import LiveScreen from '../components/LiveScreen.vue'
 import { useSocketStore } from '../stores/socket'
 import { useAuthStore } from '../stores/auth'
 
 const socketStore = useSocketStore()
 const authStore = useAuthStore()
 const showTerminal = ref(false)
+const showLiveScreen = ref(false)
 
 const activeHoneypots = computed(() => {
   return socketStore.honeypots.filter(h => h.status === 'online').length
@@ -51,70 +53,90 @@ const clearAttacks = async () => {
 
 <template>
   <DashboardLayout>
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Overview</h2>
+    <div class="mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Overview</h2>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 mb-8">
+    <div class="grid grid-cols-1 gap-4 mb-6">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         <!-- Total Attacks -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-gray-500 text-sm font-medium uppercase">Total Attacks</h3>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-gray-500 text-xs font-medium uppercase">Total Attacks</h3>
             <button 
               v-if="isAdmin"
               @click="clearAttacks"
-              class="px-3 py-1 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
+              class="px-2 py-0.5 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
               title="Clear all attacks from database"
             >
               CLEAR
             </button>
           </div>
-          <div class="mt-2">
-            <p class="text-3xl font-bold text-gray-900">{{ socketStore.attacks.length }}</p>
+          <div class="mt-1">
+            <p class="text-2xl font-bold text-gray-900">{{ socketStore.attacks.length }}</p>
           </div>
         </div>
 
         <!-- Active Honeypots -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-gray-500 text-sm font-medium uppercase">Active Honeypots</h3>
-          <div class="mt-2">
-            <p class="text-3xl font-bold text-gray-900">{{ activeHoneypots }} / {{ totalHoneypots }}</p>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 class="text-gray-500 text-xs font-medium uppercase">Active Honeypots</h3>
+          <div class="mt-1">
+            <p class="text-2xl font-bold text-gray-900">{{ activeHoneypots }} / {{ totalHoneypots }}</p>
           </div>
         </div>
 
         <!-- Live Terminal Button -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-gray-500 text-sm font-medium uppercase">Live SSH Interactions</h3>
-          <div class="mt-2">
-            <button 
-              @click="showTerminal = !showTerminal"
-              class="w-full px-4 py-3 rounded-lg font-semibold transition-colors"
-              :class="showTerminal 
-                ? 'bg-red-600 hover:bg-red-700 text-white' 
-                : 'bg-green-600 hover:bg-green-700 text-white'"
-            >
-              {{ showTerminal ? '✕ Close Terminal' : '▶ Open Terminal' }}
-            </button>
-          </div>
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 class="text-gray-500 text-xs font-medium uppercase mb-2">Live SSH Honeypot</h3>
+          <button 
+            @click="showTerminal = !showTerminal"
+            class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            :class="showTerminal 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-green-600 hover:bg-green-700 text-white'"
+          >
+            {{ showTerminal ? '✕ Close' : '▶ Open' }}
+          </button>
+        </div>
+
+        <!-- Live Login Screen Button -->
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <h3 class="text-gray-500 text-xs font-medium uppercase mb-2">Live Login Honeypot</h3>
+          <button 
+            @click="showLiveScreen = !showLiveScreen"
+            class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            :class="showLiveScreen 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'"
+          >
+            {{ showLiveScreen ? '✕ Close' : '🖥️ Open' }}
+          </button>
         </div>
 
       </div>
     </div>
 
     <!-- Live Terminal -->
-    <div v-if="showTerminal" class="mb-8">
-      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Live Interactive Sessions</h3>
+    <div v-if="showTerminal" class="mb-6">
+      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h3 class="text-base font-medium text-gray-900 mb-3">Live SSH Sessions</h3>
         <LiveTerminal />
+      </div>
+    </div>
+
+    <!-- Live Screen -->
+    <div v-if="showLiveScreen" class="mb-6">
+      <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <h3 class="text-base font-medium text-gray-900 mb-3">Live Attacker Screen</h3>
+        <LiveScreen />
       </div>
     </div>
 
     <DashboardCharts :attacks="socketStore.attacks" />
 
-    <div class="grid grid-cols-1 gap-6 mt-8">
+    <div class="grid grid-cols-1 gap-4 mt-6">
       <AttackTable :attacks="socketStore.attacks" />
     </div>
   </DashboardLayout>

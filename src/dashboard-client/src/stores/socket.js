@@ -6,6 +6,7 @@ export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
   const attacks = ref([])
   const honeypots = ref([])
+  const liveSessions = ref({}) 
 
   const loadHoneypots = async () => {
     try {
@@ -79,6 +80,64 @@ export const useSocketStore = defineStore('socket', () => {
       }
     })
 
+    socket.value.on('active_sessions', (activeSessions) => {
+      console.log('[SocketStore] Received active sessions:', activeSessions.length)
+      
+      activeSessions.forEach(session => {
+        if (!liveSessions.value[session.sessionId]) {
+          liveSessions.value[session.sessionId] = {
+            id: session.sessionId,
+            honeypotId: session.honeypotId,
+            events: [],
+            mouseX: 0,
+            mouseY: 0,
+            fields: { username: '', password: '' },
+            lastActivity: session.lastActivity
+          }
+        }
+      })
+    })
+
+    socket.value.on('live_interaction', (data) => {
+      console.log('[SocketStore] Received live_interaction:', data)
+      const { sessionId } = data
+      
+      if (data.type === 'session_end') {
+        console.log('[SocketStore] Session ended:', sessionId)
+        delete liveSessions.value[sessionId]
+        return
+      }
+      
+      if (!liveSessions.value[sessionId]) {
+        liveSessions.value[sessionId] = {
+          id: sessionId,
+          honeypotId: data.honeypotId,
+          events: [],
+          mouseX: 0,
+          mouseY: 0,
+          fields: { username: '', password: '' },
+          lastActivity: Date.now()
+        }
+      }
+      
+      const session = liveSessions.value[sessionId]
+      session.events.push(data)
+      session.lastActivity = Date.now()
+      
+      switch (data.type) {
+        case 'mousemove':
+          session.mouseX = data.x
+          session.mouseY = data.y
+          break
+        case 'input':
+          session.fields[data.field] = data.value
+          break
+        case 'submit':
+          console.log(`User submitted form in session ${sessionId}`)
+          break
+      }
+    })
+
     socket.value.on('disconnect', () => {
       console.log('Disconnected from collector server')
     })
@@ -90,10 +149,25 @@ export const useSocketStore = defineStore('socket', () => {
     }
   }
 
+  const cleanupInactiveSessions = () => {
+    const timeout = 30000
+    const now = Date.now()
+    
+    for (const [sessionId, session] of Object.entries(liveSessions.value)) {
+      if (now - session.lastActivity > timeout) {
+        console.log('[SocketStore] Removing inactive session:', sessionId)
+        delete liveSessions.value[sessionId]
+      }
+    }
+  }
+
+  setInterval(cleanupInactiveSessions, 10000)
+
   return {
     socket,
     attacks,
     honeypots,
+    liveSessions,
     connect,
     disconnect
   }
