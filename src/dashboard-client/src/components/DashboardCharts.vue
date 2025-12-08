@@ -21,7 +21,6 @@ const props = defineProps({
   }
 })
 
-// Compute Attacks by Severity
 const severityData = computed(() => {
   const counts = { low: 0, medium: 0, critical: 0 }
   props.attacks.forEach(a => {
@@ -37,15 +36,14 @@ const severityData = computed(() => {
   return {
     labels: ['Low/Unknown', 'Medium', 'Critical'],
     datasets: [{
-      backgroundColor: ['#3b82f6', '#f59e0b', '#ef4444'],
-      borderColor: '#ffffff',
+      backgroundColor: ['#5fbfbb', '#f59e0b', '#ef4444'],
+      borderColor: '#5fbfbb',
       borderWidth: 2,
       data: [counts.low, counts.medium, counts.critical]
     }]
   }
 })
 
-// Compute Attacks by Port
 const portData = computed(() => {
   const counts = {}
   props.attacks.forEach(a => {
@@ -60,13 +58,13 @@ const portData = computed(() => {
   })
   
   const portColors = {
-    '2222': '#8b5cf6', // viola
-    '3001': '#3b82f6', // blu
-    '3003': '#10b981', // verde
-    'Unknown': '#6b7280' // grigio
+    '2222': '#5fbfbb',
+    '3001': '#5fbfbb',
+    '3003': '#5fbfbb',
+    'Unknown': '#6b7280'
   }
   
-  const backgroundColors = sortedPorts.map(port => portColors[port] || '#a855f7')
+  const backgroundColors = sortedPorts.map(port => portColors[port] || '#5fbfbb')
   
   return {
     labels: sortedPorts,
@@ -83,17 +81,17 @@ const chartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      labels: { color: '#374151' }
+      labels: { color: '#5fbfbb' }
     }
   },
   scales: {
     y: {
-      ticks: { color: '#374151' },
-      grid: { color: '#e5e7eb' }
+      ticks: { color: '#5fbfbb' },
+      grid: { color: 'rgba(95,191,187,0.2)' }
     },
     x: {
-      ticks: { color: '#374151' },
-      grid: { color: '#e5e7eb' }
+      ticks: { color: '#5fbfbb' },
+      grid: { color: 'rgba(95,191,187,0.2)' }
     }
   }
 }
@@ -104,7 +102,7 @@ const doughnutOptions = {
   plugins: {
     legend: {
       position: 'right',
-      labels: { color: '#374151' }
+      labels: { color: '#5fbfbb' }
     }
   },
   cutout: '70%'
@@ -113,15 +111,15 @@ const doughnutOptions = {
 
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <h3 class="text-gray-500 text-sm font-medium mb-4 uppercase">Threat Severity Distribution</h3>
+    <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
+      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Threat Severity Distribution</h3>
       <div class="h-64">
         <Doughnut :data="severityData" :options="doughnutOptions" />
       </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <h3 class="text-gray-500 text-sm font-medium mb-4 uppercase">Traffic Analysis by Port</h3>
+    <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
+      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Traffic Analysis by Port</h3>
       <div class="h-64">
         <Bar :data="portData" :options="chartOptions" />
       </div>

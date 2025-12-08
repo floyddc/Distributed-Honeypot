@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+  <div class="login-container" @mousemove="trackMouseMove" @click="trackClick">
     <h1>Login</h1>
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
@@ -8,6 +8,7 @@
           type="text" 
           id="username" 
           v-model="username" 
+          @input="trackInput('username', username)"
           placeholder="Enter your username"
           required
         />
@@ -18,6 +19,7 @@
           type="password" 
           id="password" 
           v-model="password" 
+          @input="trackInput('password', password)"
           placeholder="Enter your password"
           required
         />
@@ -33,6 +35,7 @@
 
 <script>
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 export default {
   name: 'App',
@@ -42,10 +45,26 @@ export default {
       password: '',
       attempts: 0,
       loading: false,
-      clientIp: ''
+      clientIp: '',
+      socket: null,
+      sessionId: null
     }
   },
   async created() {
+    this.sessionId = this.generateSessionId();
+    this.socket = io('http://localhost:3000');
+    
+    this.socket.on('connect', () => {
+      console.log('Connected to collector server for live tracking');
+      
+      this.socket.emit('honeypot_interaction', {
+        honeypotId: 'node1',
+        sessionId: this.sessionId,
+        type: 'session_start',
+        timestamp: Date.now()
+      });
+    });
+
     try {
       const response = await axios.get('https://api.ipify.org?format=json');
       this.clientIp = response.data.ip;
@@ -55,10 +74,89 @@ export default {
       this.clientIp = 'unknown';
     }
   },
+  beforeUnmount() {
+    if (this.socket) {
+      this.socket.emit('honeypot_interaction', {
+        honeypotId: 'node1',
+        sessionId: this.sessionId,
+        type: 'session_end',
+        timestamp: Date.now()
+      });
+      this.socket.disconnect();
+    }
+  },
   methods: {
+    generateSessionId() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    },
+    
+    trackMouseMove(e) {
+      if (!this._mouseThrottle) {
+        this._mouseThrottle = setTimeout(() => {
+          if (this.socket && this.socket.connected) {
+            const percentX = (e.clientX / window.innerWidth) * 100;
+            const percentY = (e.clientY / window.innerHeight) * 100;
+            
+            this.socket.emit('honeypot_interaction', {
+              honeypotId: 'node1',
+              sessionId: this.sessionId,
+              type: 'mousemove',
+              x: percentX,
+              y: percentY,
+              timestamp: Date.now()
+            });
+          }
+          this._mouseThrottle = null;
+        }, 50); // 50ms
+      }
+    },
+    
+    trackClick(e) {
+      if (this.socket && this.socket.connected) {
+        const percentX = (e.clientX / window.innerWidth) * 100;
+        const percentY = (e.clientY / window.innerHeight) * 100;
+        
+        this.socket.emit('honeypot_interaction', {
+          honeypotId: 'node1',
+          sessionId: this.sessionId,
+          type: 'click',
+          x: percentX,
+          y: percentY,
+          element: e.target.tagName,
+          timestamp: Date.now()
+        });
+      }
+    },
+    
+    trackInput(field, value) {
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('honeypot_interaction', {
+          honeypotId: 'node1',
+          sessionId: this.sessionId,
+          type: 'input',
+          field: field,
+          value: field === 'password' ? '*'.repeat(value.length) : value,
+          timestamp: Date.now()
+        });
+      }
+    },
+    
     async handleSubmit() {
       this.attempts++;
       this.loading = true;
+
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('honeypot_interaction', {
+          honeypotId: 'node1',
+          sessionId: this.sessionId,
+          type: 'submit',
+          timestamp: Date.now()
+        });
+      }
 
       try {
         // Send login attempt to node server

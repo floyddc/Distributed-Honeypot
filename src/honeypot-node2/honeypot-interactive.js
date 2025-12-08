@@ -2,19 +2,19 @@ const { Server } = require('ssh2');
 const crypto = require('crypto');
 const { io } = require('socket.io-client');
 const { getGeoData } = require('./utils/helpers.cjs');
-
 const HONEYPOT_ID = 'node2';
 const PORT = process.env.SSH_PORT || 2222;
+let heartbeatInterval;
 
-//Connessione al server centrale collector
 const socket = io(process.env.COLLECTOR_SERVER_URL || 'http://localhost:3000', {
-    reconnection: true
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: Infinity
 });
 
 socket.on('connect', () => {
-    console.log('Interactive SSH Honeypot connected to collector');
+    console.log('Honeypot Node 3 connected to collector');
 
-    //Invio lo stato iniziale al collector
     socket.emit('honeypot_status', {
         honeypotId: HONEYPOT_ID,
         status: 'online',
@@ -22,24 +22,41 @@ socket.on('connect', () => {
         timestamp: new Date().toISOString()
     });
 
-    //Invio il heartbeat al collector ogni 5 secondi
-    setInterval(() => {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+
+    heartbeatInterval = setInterval(() => {
         socket.emit('honeypot_heartbeat', {
             honeypotId: HONEYPOT_ID,
             port: PORT,
             timestamp: new Date().toISOString()
         });
-    }, 5000);
+    }, 5000); // 5s
 });
 
-//Generazione host key
+socket.on('disconnect', () => {
+    console.log('Disconnected from collector - buffering mode activated | Heartbeat stopped');
+    
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+});
+
+socket.on('connect_error', (error) => {
+    console.error('Connection error:', error.message);
+});
+
+// Generate a dummy SSH host key
 const hostKey = crypto.generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: { type: 'spki', format: 'pem' },
     privateKeyEncoding: { type: 'pkcs1', format: 'pem' }
 });
 
-//Simulazione filesystem
+// File System simulation
 const fsState = {
     '/root': { type: 'dir', files: ['secret.txt', 'passwords.db'] },
     '/etc': { type: 'dir', files: ['passwd', 'shadow', 'hosts'] },
@@ -64,7 +81,6 @@ const server = new Server({
             geoData = await getGeoData(clientIp);
         }
 
-        //Invio l'evento login attempt al collector
         socket.emit('honeypot_data', {
             honeypotId: HONEYPOT_ID,
             timestamp: new Date().toISOString(),
@@ -76,7 +92,6 @@ const server = new Server({
             type: 'login'
         });
 
-        //Permetto l'accesso solo se il login e la password sono root/123456
         if (ctx.method === 'password' && ctx.username === 'root' && ctx.password === '123456') {
             ctx.accept();
         } else {
@@ -84,36 +99,28 @@ const server = new Server({
         }
     });
 
-    //Quando il client si autentica
     client.on('ready', () => {
         console.log('Client authenticated!');
-        //Quando il client richiede una sessione
         client.on('session', (accept, reject) => {
             const session = accept();
-            //Quando il client richiede un pty (pseudo-terminal)
             session.on('pty', (accept, reject, info) => {
                 accept();
             });
-            //Quando il client richiede un shell
             session.on('shell', (accept, reject) => {
                 stream = accept();
                 const sessionId = crypto.randomUUID();
                 console.log(`New session started: ${sessionId}`);
 
-                //invio i dati della sessione al collector
                 const originalWrite = stream.write;
                 stream.write = function (chunk, encoding, callback) {
-                    //invio i dati della sessione al collector
                     socket.emit('session_data', {
                         honeypotId: HONEYPOT_ID,
                         sessionId: sessionId,
                         data: chunk.toString()
                     });
-                    //scrivo i dati della sessione al client
                     return originalWrite.apply(stream, arguments);
                 };
 
-                //prompt iniziale
                 stream.write('Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-150-generic x86_64)\r\n\r\n');
                 stream.write('root@server:~# ');
 
@@ -125,7 +132,6 @@ const server = new Server({
                     for (let i = 0; i < chunk.length; i++) {
                         const char = chunk[i];
 
-                        //gestione Enter (CR)
                         if (char === '\r') {
                             stream.write('\r\n');
                             console.log(`[DEBUG] Raw buffer: ${JSON.stringify(buffer)}`);
@@ -133,19 +139,16 @@ const server = new Server({
                             buffer = '';
                             stream.write(`root@server:${currentDir === '/root' ? '~' : currentDir}# `);
                         }
-                        //gestione Backspace (DEL)
                         else if (char === '\u007f') {
                             if (buffer.length > 0) {
                                 buffer = buffer.slice(0, -1);
                                 stream.write('\b \b');
                             }
                         }
-                        //gestione caratteri normali
                         else if (char >= ' ' && char <= '~') {
                             buffer += char;
                             stream.write(char);
                         }
-                        //ignoro altri caratteri di controllo
                     }
                 });
             });
@@ -162,7 +165,6 @@ function handleCommand(cmd, stream, clientIp, geoData) {
     const command = parts[0];
     const args = parts.slice(1);
 
-    //invio l'evento command execution al collector
     socket.emit('honeypot_data', {
         honeypotId: HONEYPOT_ID,
         timestamp: new Date().toISOString(),
@@ -214,5 +216,5 @@ function handleCommand(cmd, stream, clientIp, geoData) {
 }
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Interactive SSH Honeypot listening on port ${PORT}`);
+    console.log(`Honeypot Node 3 listening on port ${PORT}`);
 });

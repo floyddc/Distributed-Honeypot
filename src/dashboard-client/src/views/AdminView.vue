@@ -2,12 +2,10 @@
 import { ref, onMounted, onActivated } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
-import LiveTerminal from '../components/LiveTerminal.vue'
 
 const authStore = useAuthStore()
 const users = ref([])
 const honeypots = ref([])
-const showTerminal = ref(false)
 const loading = ref(false)
 const error = ref('')
 
@@ -106,91 +104,82 @@ onActivated(() => {
 <template>
   <DashboardLayout>
     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Admin Panel</h2>
+      <h2 class="text-2xl font-bold text-[#5fbfbb]">Admin Panel</h2>
     </div>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-8">
-      <p class="text-gray-500">Loading...</p>
+      <p class="text-gray-300">Loading...</p>
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+    <div v-if="error" class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4">
       {{ error }}
     </div>
 
     <div v-else>
       <!-- Global Controls -->
-      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Global Controls</h3>
+      <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb] mb-8">
+        <h3 class="text-lg font-medium text-[#5fbfbb] mb-4">Global Controls</h3>
         <div class="flex space-x-4 mb-4">
-          <button @click="toggleAllHoneypots('start')" 
+          <button @click="controlAllHoneypots('start')" 
                   :disabled="loading"
-                  class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                  class="px-4 py-2 bg-[#5fbfbb] text-[rgba(22,21,21,0.9)] rounded hover:bg-[#4fa9a5] disabled:opacity-50 font-semibold">
             Start All
           </button>
-          <button @click="toggleAllHoneypots('stop')" 
+          <button @click="controlAllHoneypots('stop')" 
                   :disabled="loading"
-                  class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50">
+                  class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 font-semibold">
             Stop All
           </button>
-          <button @click="showTerminal = !showTerminal" class="px-4 py-2 bg-black text-green-500 border border-green-500 rounded hover:bg-gray-900 font-mono">
-            {{ showTerminal ? 'Hide Terminal' : 'Open Live Terminal' }}
-          </button>
-        </div>
-
-        <!-- Live Terminal -->
-        <div v-if="showTerminal" class="mt-4">
-          <h4 class="text-sm font-medium text-gray-700 mb-2">Live Session Feed</h4>
-          <LiveTerminal />
         </div>
       </div>
 
       <!-- Honeypot Management -->
-      <div class="bg-white shadow-sm rounded-lg border border-gray-200 mb-8 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-              <h3 class="text-lg font-medium text-gray-900">Honeypots ({{ honeypots.length }})</h3>
+      <div class="bg-[rgba(22,21,21,0.9)] shadow-sm rounded-lg border border-[#5fbfbb] mb-8 overflow-hidden">
+          <div class="px-6 py-4 border-b border-[#5fbfbb] bg-[rgba(22,21,21,0.95)] flex justify-between items-center">
+              <h3 class="text-lg font-medium text-[#5fbfbb]">Honeypots ({{ honeypots.length }})</h3>
           </div>
 
           <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                  <thead class="bg-gray-50">
+              <table class="min-w-full divide-y divide-[#5fbfbb]">
+                  <thead class="bg-[rgba(22,21,21,0.95)]">
                       <tr>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Honeypot ID</th>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port</th>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Honeypot ID</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Port</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Status</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Last Seen</th>
+                          <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Actions</th>
                       </tr>
                   </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                      <tr v-for="hp in honeypots" :key="hp._id">
-                          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ hp.honeypotId }}</td>
-                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ hp.port || 'N/A' }}</td>
+                  <tbody class="bg-[rgba(22,21,21,0.9)] divide-y divide-[rgba(95,191,187,0.3)]">
+                      <tr v-for="hp in honeypots" :key="hp._id" class="hover:bg-[rgba(95,191,187,0.1)]">
+                          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">{{ hp.honeypotId }}</td>
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ hp.port || 'N/A' }}</td>
                           <td class="px-6 py-4 whitespace-nowrap">
-                              <span :class="hp.status === 'online' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
+                              <span :class="hp.status === 'online' ? 'bg-[rgba(95,191,187,0.3)] text-[#5fbfbb]' : 'bg-red-900 text-red-200'" 
                                     class="px-2 py-1 rounded-full text-xs font-semibold">
                                   {{ hp.status }}
                               </span>
                           </td>
-                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                               {{ hp.lastSeen ? new Date(hp.lastSeen).toLocaleString('it-IT') : 'Never' }}
                           </td>
                           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                               <button @click="controlHoneypot(hp._id, 'start')" 
                                       :disabled="loading"
-                                      class="text-green-600 hover:text-green-900 disabled:opacity-50">
+                                      class="text-[#5fbfbb] hover:text-[#4fa9a5] disabled:opacity-50 font-semibold">
                                 Start
                               </button>
                               <button @click="controlHoneypot(hp._id, 'stop')" 
                                       :disabled="loading"
-                                      class="text-red-600 hover:text-red-900 disabled:opacity-50">
+                                      class="text-red-400 hover:text-red-300 disabled:opacity-50 font-semibold">
                                 Stop
                               </button>
                           </td>
                       </tr>
                       <tr v-if="honeypots.length === 0">
-                          <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No honeypots registered.</td>
+                          <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-400">No honeypots registered.</td>
                       </tr>
                   </tbody>
               </table>
@@ -198,37 +187,39 @@ onActivated(() => {
       </div>
 
       <!-- User Management -->
-      <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 class="text-lg font-medium text-gray-900">User Management</h3>
+      <div class="bg-[rgba(22,21,21,0.9)] shadow-sm rounded-lg border border-[#5fbfbb] overflow-hidden">
+        <div class="px-6 py-4 border-b border-[#5fbfbb] bg-[rgba(22,21,21,0.95)]">
+          <h3 class="text-lg font-medium text-[#5fbfbb]">User Management</h3>
         </div>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+          <table class="min-w-full divide-y divide-[#5fbfbb]">
+            <thead class="bg-[rgba(22,21,21,0.95)]">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Username</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Role</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-[#5fbfbb] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="user in users" :key="user._id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.username }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span :class="user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'" 
+            <tbody class="bg-[rgba(22,21,21,0.9)] divide-y divide-[rgba(95,191,187,0.3)]">
+              <tr v-for="user in users" :key="user._id" class="hover:bg-[rgba(95,191,187,0.1)]">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">{{ user.username }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ user.email }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <span :class="user.role === 'admin' ? 'bg-[rgba(95,191,187,0.3)] text-[#5fbfbb]' : 'bg-gray-700 text-gray-300'" 
                         class="px-2 py-1 rounded-full text-xs font-semibold">
                     {{ user.role }}
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button v-if="user.role !== 'admin'" 
-                          @click="promoteUser(user._id)" 
-                          class="text-indigo-600 hover:text-indigo-900">
-                    Make Admin
+                  <button v-if="user.role !== 'admin'" @click="promoteUser(user._id)" 
+                          class="text-[#5fbfbb] hover:text-[#4fa9a5] font-semibold">
+                    Promote to Admin
                   </button>
                 </td>
+              </tr>
+              <tr v-if="users.length === 0">
+                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-400">No users found.</td>
               </tr>
             </tbody>
           </table>
