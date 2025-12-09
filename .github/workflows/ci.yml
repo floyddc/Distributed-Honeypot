@@ -60,13 +60,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Create .env file
-      run: |
-        cd src
-        echo "GEMINI_API_KEY=dummy_key_for_ci" > .env
-        echo "MONGO_URI=mongodb://mongo:27017/distributed-honeypot" >> .env
-        echo "PORT=3000" >> .env
-
     - name: Start Containers
       run: |
         cd src
@@ -81,8 +74,11 @@ jobs:
         
         cd tests
         npm install
+        npm run test:heartbeat
         npm run test:stats
+        npm run test:login
         npm run test:ssh
+        npm run test:llm
 
     - name: Stop Containers
       if: always()
