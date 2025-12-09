@@ -1,32 +1,31 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
 import { useSocketStore } from '../stores/socket'
 
 const socketStore = useSocketStore()
-const sessions = ref({}) 
 const activeSessionId = ref(null)
-const terminalRefs = ref({}) 
+const terminalRefs = ref({})
+const terminalInstances = ref({})
+
+const sessions = computed(() => socketStore.terminalSessions)
 
 const createSession = async (sessionId) => {
-    if (sessions.value[sessionId]) return
+    if (terminalInstances.value[sessionId]) {
+        console.log(`Terminal instance already exists for: ${sessionId}`)
+        return
+    }
 
     console.log(`Creating new terminal session: ${sessionId}`)
-    
-    sessions.value[sessionId] = {
-        id: sessionId,
-        term: null,
-        fitAddon: null,
-        buffer: ''
-    }
-
-    if (!activeSessionId.value) {
-        activeSessionId.value = sessionId
-    }
-
     await nextTick()
+    const container = terminalRefs.value[sessionId]
+    if (!container) {
+        console.warn(`Container not found for session: ${sessionId}`)
+        setTimeout(() => createSession(sessionId), 100)
+        return
+    }
 
     const term = new Terminal({
         cursorBlink: true,
@@ -37,75 +36,122 @@ const createSession = async (sessionId) => {
             cursorAccent: 'rgba(22, 21, 21, 0.8)'
         },
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-        fontSize: 14
+        fontSize: 14,
+        rows: 24,
+        cols: 80
     })
 
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
 
-    const container = terminalRefs.value[sessionId]
-    if (container) {
-        term.open(container)
-        fitAddon.fit()
-    }
+    term.open(container)
+    
+    setTimeout(() => {
+        try {
+            fitAddon.fit()
+        } catch (e) {
+            console.warn('Failed to fit terminal:', e)
+        }
+    }, 50)
 
-    sessions.value[sessionId].term = term
-    sessions.value[sessionId].fitAddon = fitAddon
+    const session = sessions.value[sessionId]
+    const existingBuffer = session?.buffer || ''
+    
+    terminalInstances.value[sessionId] = {
+        term,
+        fitAddon,
+        lastBufferLength: existingBuffer.length 
+    }
+    
+    if (!activeSessionId.value) {
+        activeSessionId.value = sessionId
+    }
     
     term.write(`--- Session Started: ${sessionId} ---\r\n`)
-}
-
-const setupListener = () => {
-    if (socketStore.socket) {
-        socketStore.socket.off('live_session_feed')
-        socketStore.socket.on('live_session_feed', async (payload) => {
-            console.log('[DEBUG] LiveTerminal received:', payload)
-            
-            const sessionId = payload.sessionId || 'default'
-            
-            if (!sessions.value[sessionId]) {
-                await createSession(sessionId)
-            }
-
-            const session = sessions.value[sessionId]
-            if (session && session.term) {
-                session.term.write(payload.data)
-            }
-        })
+    
+    if (existingBuffer) {
+        console.log(`Writing existing buffer (${existingBuffer.length} chars) to terminal ${sessionId}`)
+        term.write(existingBuffer)
     }
 }
 
 const switchTab = (sessionId) => {
     activeSessionId.value = sessionId
     nextTick(() => {
-        const session = sessions.value[sessionId]
-        if (session && session.fitAddon) {
-            session.fitAddon.fit()
+        const instance = terminalInstances.value[sessionId]
+        if (instance && instance.fitAddon) {
+            try {
+                instance.fitAddon.fit()
+            } catch (e) {
+                console.warn('Failed to fit terminal on tab switch:', e)
+            }
         }
     })
 }
 
-onMounted(() => {
-    setupListener()
+watch(sessions, async (newSessions, oldSessions) => {
+    console.log('[LiveTerminal] Sessions changed:', Object.keys(newSessions))
+    
+    for (const sessionId of Object.keys(newSessions)) {
+        if (!terminalInstances.value[sessionId]) {
+            await nextTick()
+            await createSession(sessionId)
+        }
+    }
+}, { deep: true })
 
-    watch(() => socketStore.socket, () => {
-        setupListener()
+watch(sessions, (newSessions) => {
+    for (const [sessionId, session] of Object.entries(newSessions)) {
+        const instance = terminalInstances.value[sessionId]
+        if (instance && instance.term && session.buffer) {
+            if (!instance.lastBufferLength) {
+                instance.lastBufferLength = 0
+            }
+            
+            const newData = session.buffer.substring(instance.lastBufferLength)
+            if (newData.length > 0) {
+                instance.term.write(newData)
+                instance.lastBufferLength = session.buffer.length
+            }
+        }
+    }
+}, { deep: true })
+
+onMounted(() => {
+    console.log('[LiveTerminal] Component mounted')
+    console.log('[LiveTerminal] Existing sessions from store:', Object.keys(sessions.value))
+    
+    nextTick(() => {
+        for (const sessionId of Object.keys(sessions.value)) {
+            createSession(sessionId)
+        }
     })
 
-    window.addEventListener('resize', () => {
-        if (activeSessionId.value && sessions.value[activeSessionId.value]) {
-            sessions.value[activeSessionId.value].fitAddon.fit()
+    const handleResize = () => {
+        if (activeSessionId.value && terminalInstances.value[activeSessionId.value]) {
+            try {
+                terminalInstances.value[activeSessionId.value].fitAddon.fit()
+            } catch (e) {
+                console.warn('Failed to fit terminal on resize:', e)
+            }
         }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    
+    onUnmounted(() => {
+        window.removeEventListener('resize', handleResize)
     })
 })
 
 onUnmounted(() => {
-    Object.values(sessions.value).forEach(session => {
-        if (session.term) session.term.dispose()
+    console.log('[LiveTerminal] Component unmounting, disposing terminals')
+    Object.values(terminalInstances.value).forEach(instance => {
+        if (instance.term) {
+            instance.term.dispose()
+        }
     })
-    if (socketStore.socket) {
-        socketStore.socket.off('live_session_feed')
-    }
+    terminalInstances.value = {}
 })
 </script>
 
@@ -117,7 +163,7 @@ onUnmounted(() => {
                 v-for="(session, id) in sessions" 
                 :key="id"
                 @click="switchTab(id)"
-                class="px-4 py-2 text-xs font-mono border-r border-[#5fbfbb] hover:bg-[rgba(95,191,187,0.2)] transition-colors"
+                class="px-4 py-2 text-xs font-mono border-r border-[#5fbfbb] hover:bg-[rgba(95,191,187,0.2)] transition-colors whitespace-nowrap"
                 :class="activeSessionId === id ? 'bg-[rgba(95,191,187,0.2)] text-[#5fbfbb]' : 'text-gray-400'"
             >
                 {{ id.slice(0, 8) }}...
@@ -134,7 +180,7 @@ onUnmounted(() => {
                 :key="id"
                 :ref="(el) => { if (el) terminalRefs[id] = el }"
                 class="absolute inset-0 w-full h-full"
-                :class="{ 'z-10': activeSessionId === id, 'z-0 opacity-0': activeSessionId !== id }"
+                :class="{ 'z-10': activeSessionId === id, 'z-0 opacity-0 pointer-events-none': activeSessionId !== id }"
             ></div>
             
             <!-- Empty State -->

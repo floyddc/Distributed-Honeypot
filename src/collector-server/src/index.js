@@ -200,7 +200,7 @@ io.on('connection', (socket) => {
     });
 
     setInterval(() => {
-        const timeout = 10000; // 10s
+        const timeout = 20000; // 20s
         const now = Date.now();
         
         for (const [sessionId, session] of activeSessions.entries()) {

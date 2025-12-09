@@ -1,12 +1,48 @@
 import { defineStore } from 'pinia'
 import { io } from 'socket.io-client'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
   const attacks = ref([])
   const honeypots = ref([])
-  const liveSessions = ref({}) 
+  
+  const loadSessionsFromStorage = () => {
+    try {
+      const savedLiveSessions = localStorage.getItem('liveSessions')
+      const savedTerminalSessions = localStorage.getItem('terminalSessions')
+      
+      return {
+        live: savedLiveSessions ? JSON.parse(savedLiveSessions) : {},
+        terminal: savedTerminalSessions ? JSON.parse(savedTerminalSessions) : {}
+      }
+    } catch (error) {
+      console.error('Failed to load sessions from localStorage:', error)
+      return { live: {}, terminal: {} }
+    }
+  }
+  
+  const savedSessions = loadSessionsFromStorage()
+  const liveSessions = ref(savedSessions.live)
+  const terminalSessions = ref(savedSessions.terminal)
+  
+  watch(liveSessions, (newSessions) => {
+    try {
+      localStorage.setItem('liveSessions', JSON.stringify(newSessions))
+      console.log('[SocketStore] Saved liveSessions to localStorage')
+    } catch (error) {
+      console.error('Failed to save liveSessions to localStorage:', error)
+    }
+  }, { deep: true })
+  
+  watch(terminalSessions, (newSessions) => {
+    try {
+      localStorage.setItem('terminalSessions', JSON.stringify(newSessions))
+      console.log('[SocketStore] Saved terminalSessions to localStorage')
+    } catch (error) {
+      console.error('Failed to save terminalSessions to localStorage:', error)
+    }
+  }, { deep: true })
 
   const loadHoneypots = async () => {
     try {
@@ -76,6 +112,8 @@ export const useSocketStore = defineStore('socket', () => {
          setTimeout(() => {
             localStorage.removeItem('user')
             localStorage.removeItem('token')
+            localStorage.removeItem('liveSessions')
+            localStorage.removeItem('terminalSessions')
             window.location.href = '/login'
           }, 3000) // 3s
       }
@@ -152,6 +190,24 @@ export const useSocketStore = defineStore('socket', () => {
       }
     })
 
+    socket.value.on('live_session_feed', (payload) => {
+      console.log('[SocketStore] Received live_session_feed:', payload)
+      const sessionId = payload.sessionId || 'default'
+      
+      if (!terminalSessions.value[sessionId]) {
+        terminalSessions.value[sessionId] = {
+          id: sessionId,
+          honeypotId: payload.honeypotId,
+          buffer: '',
+          lastActivity: Date.now()
+        }
+      }
+      
+      const session = terminalSessions.value[sessionId]
+      session.buffer += payload.data
+      session.lastActivity = Date.now()
+    })
+
     socket.value.on('role_updated', (data) => {
       console.log('Role updated event received:', data)
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -187,7 +243,7 @@ export const useSocketStore = defineStore('socket', () => {
   }
 
   const cleanupInactiveSessions = () => {
-    const timeout = 30000
+    const timeout = 20000 // 20s
     const now = Date.now()
     
     for (const [sessionId, session] of Object.entries(liveSessions.value)) {
@@ -196,16 +252,33 @@ export const useSocketStore = defineStore('socket', () => {
         delete liveSessions.value[sessionId]
       }
     }
+    
+    for (const [sessionId, session] of Object.entries(terminalSessions.value)) {
+      if (now - session.lastActivity > timeout) {
+        console.log('[SocketStore] Removing inactive terminal session:', sessionId)
+        delete terminalSessions.value[sessionId]
+      }
+    }
   }
 
   setInterval(cleanupInactiveSessions, 10000)
+
+  const clearAllSessions = () => {
+    liveSessions.value = {}
+    terminalSessions.value = {}
+    localStorage.removeItem('liveSessions')
+    localStorage.removeItem('terminalSessions')
+    console.log('[SocketStore] All sessions cleared')
+  }
 
   return {
     socket,
     attacks,
     honeypots,
     liveSessions,
+    terminalSessions,
     connect,
-    disconnect
+    disconnect,
+    clearAllSessions
   }
 })

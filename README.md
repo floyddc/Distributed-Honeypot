@@ -23,7 +23,7 @@
 - Interact with it and check logs on Terminal.
 
 ### How Honeypot-node2 works
-- Try to connect to the SSH server: `ssh -p 2222 <any username>@localhost`
+- Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
 - Check logs on Terminal.
 - _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
 

