@@ -6,6 +6,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const Honeypot = require('./models/Honeypot');
+const Session = require('./models/Session');
 const PORT = process.env.PORT || 3000;
 
 const app = express();
@@ -35,6 +36,7 @@ app.get('/api/honeypots', async (req, res) => {
         res.json(honeypots);
     } catch (error) {
         console.error(`Honeypots not found`);
+        res.status(500).json({ message: 'Error fetching honeypots' });
     }
 });
 
@@ -49,6 +51,33 @@ app.get('/api/attacks', async (req, res) => {
     }
 });
 
+app.get('/api/sessions', async (req, res) => {
+    try {
+        const sessions = await Session.find({ status: 'active' })
+            .select('sessionId honeypotId type buffer fields mouseX mouseY lastActivity')
+            .sort({ lastActivity: -1 });
+        
+        console.log(`[API] Returning ${sessions.length} active sessions`);
+        res.json(sessions);
+    } catch (error) {
+        console.error('[API] Error fetching sessions:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+app.get('/api/sessions/:sessionId', async (req, res) => {
+    try {
+        const session = await Session.findOne({ sessionId: req.params.sessionId });
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+        res.json(session);
+    } catch (error) {
+        console.error('[API] Error fetching session:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // Make io accessible in routes
 app.set('io', io);
 
@@ -59,7 +88,6 @@ app.get('/', (req, res) => {
 
 const honeypotHeartbeats = new Map();
 const honeypotSockets = new Map();
-const activeSessions = new Map(); 
 
 setInterval(async () => {
     const timeout = 15000;
@@ -92,10 +120,57 @@ setInterval(async () => {
     }
 }, 10000);
 
-io.on('connection', (socket) => {
+setInterval(async () => {
+    const timeout = 20000; // 20s
+    const threshold = new Date(Date.now() - timeout);
+    
+    try {
+        const result = await Session.updateMany(
+            {
+                status: 'active',
+                lastActivity: { $lt: threshold }
+            },
+            {
+                $set: {
+                    status: 'ended',
+                    endTime: new Date()
+                }
+            }
+        );
+        
+        if (result.modifiedCount > 0) {
+            console.log(`[DB] Marked ${result.modifiedCount} sessions as ended due to inactivity`);
+            
+            // Notifica i client delle sessioni terminate
+            const endedSessions = await Session.find({
+                status: 'ended',
+                endTime: { $gte: threshold }
+            }).select('sessionId');
+            
+            endedSessions.forEach(session => {
+                io.emit('live_interaction', {
+                    sessionId: session.sessionId,
+                    type: 'session_end',
+                    timestamp: Date.now()
+                });
+            });
+        }
+    } catch (error) {
+        console.error('[DB] Error cleaning up inactive sessions:', error);
+    }
+}, 10000);
+
+io.on('connection', async (socket) => {
     console.log('A user/honeypot connected:', socket.id);
 
-    socket.emit('active_sessions', Array.from(activeSessions.values()));
+    try {
+        const activeSessions = await Session.find({ status: 'active' })
+            .select('sessionId honeypotId type lastActivity');
+        socket.emit('active_sessions', activeSessions);
+        console.log(`[Socket] Sent ${activeSessions.length} active sessions to client ${socket.id}`);
+    } catch (error) {
+        console.error('[Socket] Error loading active sessions:', error);
+    }
 
     socket.on('honeypot_heartbeat', async (data) => {
         const { honeypotId, port, timestamp } = data;
@@ -161,7 +236,7 @@ io.on('connection', (socket) => {
         console.log('Received honeypot data:', data);
 
         try {
-            const Attack = require('./models/Attack');  // Save on DB
+            const Attack = require('./models/Attack');
             await Attack.create(data);
         } catch (error) {
             console.error('Error saving attack:', error);
@@ -170,51 +245,82 @@ io.on('connection', (socket) => {
         io.emit('new_attack', data);
     });
 
-    socket.on('session_data', (data) => {
-        console.log(`[DEBUG] Received session_data from ${data.honeypotId}:`, data.data);
-
-        io.emit('live_session_feed', data);
+    socket.on('session_data', async (data) => {
+        console.log(`[SSH] Received session_data from ${data.honeypotId}`);
+        
+        const sessionId = data.sessionId || 'default';
+        
+        try {
+            let session = await Session.findOne({ sessionId });
+            
+            if (!session) {
+                session = new Session({
+                    sessionId,
+                    honeypotId: data.honeypotId,
+                    type: 'ssh',
+                    buffer: data.data,
+                    lastActivity: new Date()
+                });
+                console.log(`[DB] Created new SSH session: ${sessionId}`);
+            } else {
+                session.buffer += data.data;
+                session.lastActivity = new Date();
+            }
+            
+            await session.save();
+            
+            io.emit('live_session_feed', data);
+        } catch (error) {
+            console.error('[DB] Error saving session data:', error);
+        }
     });
 
-    socket.on('honeypot_interaction', (data) => {
-        console.log(`[INTERACTION] ${data.type} on ${data.honeypotId}`);
+    socket.on('honeypot_interaction', async (data) => {
+        console.log(`[LOGIN] ${data.type} on ${data.honeypotId}`);
         
         const { sessionId } = data;
         
-        if (!activeSessions.has(sessionId)) {
-            activeSessions.set(sessionId, {
-                sessionId,
-                honeypotId: data.honeypotId,
-                startTime: Date.now(),
-                lastActivity: Date.now()
-            });
-        } else {
-            activeSessions.get(sessionId).lastActivity = Date.now();
-        }
-        
-        if (data.type === 'session_end') {
-            activeSessions.delete(sessionId);
-        }
-        
-        io.emit('live_interaction', data);
-    });
-
-    setInterval(() => {
-        const timeout = 20000; // 20s
-        const now = Date.now();
-        
-        for (const [sessionId, session] of activeSessions.entries()) {
-            if (now - session.lastActivity > timeout) {
-                console.log(`[SESSION] Removing inactive session: ${sessionId}`);
-                activeSessions.delete(sessionId);
-                io.emit('live_interaction', {
+        try {
+            let session = await Session.findOne({ sessionId });
+            
+            if (!session) {
+                session = new Session({
                     sessionId,
-                    type: 'session_end',
-                    timestamp: Date.now()
+                    honeypotId: data.honeypotId,
+                    type: 'login',
+                    events: [data],
+                    fields: {},
+                    mouseX: data.x || 0,
+                    mouseY: data.y || 0,
+                    lastActivity: new Date()
                 });
+                console.log(`[DB] Created new login session: ${sessionId}`);
+            } else {
+                session.events.push(data);
+                session.lastActivity = new Date();
+                
+                if (data.type === 'mousemove') {
+                    session.mouseX = data.x;
+                    session.mouseY = data.y;
+                } else if (data.type === 'input' && data.field) {
+                    if (!session.fields) session.fields = {};
+                    session.fields[data.field] = data.value;
+                    session.markModified('fields'); 
+                }
+                
+                if (data.type === 'session_end') {
+                    session.status = 'ended';
+                    session.endTime = new Date();
+                }
             }
+            
+            await session.save();
+            
+            io.emit('live_interaction', data);
+        } catch (error) {
+            console.error('[DB] Error saving interaction:', error);
         }
-    }, 10000);
+    });
 
     socket.on('disconnect', async () => {
         console.log('User disconnected:', socket.id);

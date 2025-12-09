@@ -6,7 +6,10 @@ export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
   const attacks = ref([])
   const honeypots = ref([])
+  const liveSessions = ref({})
+  const terminalSessions = ref({})
   
+  // fallback
   const loadSessionsFromStorage = () => {
     try {
       const savedLiveSessions = localStorage.getItem('liveSessions')
@@ -22,14 +25,51 @@ export const useSocketStore = defineStore('socket', () => {
     }
   }
   
-  const savedSessions = loadSessionsFromStorage()
-  const liveSessions = ref(savedSessions.live)
-  const terminalSessions = ref(savedSessions.terminal)
+  const loadSessionsFromDB = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:3000/api/sessions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.ok) {
+        const sessions = await response.json()
+        console.log('[SocketStore] Loaded sessions from DB:', sessions.length)
+        
+        sessions.filter(s => s.type === 'ssh').forEach(session => {
+          terminalSessions.value[session.sessionId] = {
+            id: session.sessionId,
+            honeypotId: session.honeypotId,
+            buffer: session.buffer || '',
+            lastActivity: new Date(session.lastActivity).getTime()
+          }
+        })
+        
+        sessions.filter(s => s.type === 'login').forEach(session => {
+          liveSessions.value[session.sessionId] = {
+            id: session.sessionId,
+            honeypotId: session.honeypotId,
+            events: session.events || [],
+            mouseX: session.mouseX || 0,
+            mouseY: session.mouseY || 0,
+            fields: session.fields || { username: '', password: '' },
+            lastActivity: new Date(session.lastActivity).getTime()
+          }
+        })
+        
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('[SocketStore] Failed to load sessions from DB:', error)
+      return false
+    }
+  }
   
+  // fallback
   watch(liveSessions, (newSessions) => {
     try {
       localStorage.setItem('liveSessions', JSON.stringify(newSessions))
-      console.log('[SocketStore] Saved liveSessions to localStorage')
     } catch (error) {
       console.error('Failed to save liveSessions to localStorage:', error)
     }
@@ -38,7 +78,6 @@ export const useSocketStore = defineStore('socket', () => {
   watch(terminalSessions, (newSessions) => {
     try {
       localStorage.setItem('terminalSessions', JSON.stringify(newSessions))
-      console.log('[SocketStore] Saved terminalSessions to localStorage')
     } catch (error) {
       console.error('Failed to save terminalSessions to localStorage:', error)
     }
@@ -83,8 +122,18 @@ export const useSocketStore = defineStore('socket', () => {
   const connect = () => {
     socket.value = io('http://localhost:3000')
 
-    socket.value.on('connect', () => {
+    socket.value.on('connect', async () => {
       console.log('Connected to collector server')
+      
+      const loadedFromDB = await loadSessionsFromDB()
+      
+      if (!loadedFromDB) {
+        console.log('[SocketStore] Failed to load from DB, using localStorage as fallback')
+        const savedSessions = loadSessionsFromStorage()
+        liveSessions.value = savedSessions.live
+        terminalSessions.value = savedSessions.terminal
+      }
+      
       loadHoneypots()
       loadAttacks()
     })
@@ -115,7 +164,7 @@ export const useSocketStore = defineStore('socket', () => {
             localStorage.removeItem('liveSessions')
             localStorage.removeItem('terminalSessions')
             window.location.href = '/login'
-          }, 3000) // 3s
+          }, 3000)  // 3s
       }
     })
 
@@ -218,7 +267,7 @@ export const useSocketStore = defineStore('socket', () => {
         alert(data.message || `You have been promoted to ${data.newRole}`)
         setTimeout(() => {
           window.location.reload()
-        }, 3000) // 3s
+        }, 3000)
       }
     })
 
@@ -241,27 +290,6 @@ export const useSocketStore = defineStore('socket', () => {
       socket.value.disconnect()
     }
   }
-
-  const cleanupInactiveSessions = () => {
-    const timeout = 20000 // 20s
-    const now = Date.now()
-    
-    for (const [sessionId, session] of Object.entries(liveSessions.value)) {
-      if (now - session.lastActivity > timeout) {
-        console.log('[SocketStore] Removing inactive session:', sessionId)
-        delete liveSessions.value[sessionId]
-      }
-    }
-    
-    for (const [sessionId, session] of Object.entries(terminalSessions.value)) {
-      if (now - session.lastActivity > timeout) {
-        console.log('[SocketStore] Removing inactive terminal session:', sessionId)
-        delete terminalSessions.value[sessionId]
-      }
-    }
-  }
-
-  setInterval(cleanupInactiveSessions, 10000)
 
   const clearAllSessions = () => {
     liveSessions.value = {}

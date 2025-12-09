@@ -110,7 +110,8 @@ watch(sessions, (newSessions) => {
             
             const newData = session.buffer.substring(instance.lastBufferLength)
             if (newData.length > 0) {
-                instance.term.write(newData)
+                const normalized = newData.replace(/(?<!\r)\n/g, '\r\n')
+                instance.term.write(normalized)
                 instance.lastBufferLength = session.buffer.length
             }
         }

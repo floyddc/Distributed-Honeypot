@@ -62,7 +62,11 @@ onMounted(() => {
             <input 
               :value="sessions[activeSession].fields?.username || ''"
               placeholder="Enter your username"
-              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
+              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm 
+                    bg-white text-gray-900 font-mono
+                    caret-[#5fbfbb] 
+                    placeholder:text-gray-400
+                    readonly:opacity-100"
               readonly
             />
           </div>
@@ -73,7 +77,11 @@ onMounted(() => {
               :value="sessions[activeSession].fields?.password || ''"
               type="text"
               placeholder="Enter your password"
-              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm"
+              class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm
+                    bg-white text-gray-900 font-mono
+                    caret-[#5fbfbb]
+                    placeholder:text-gray-400
+                    readonly:opacity-100"
               readonly
             />
           </div>
