@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import LocationMapModal from './LocationMapModal.vue'
 
 const props = defineProps({
@@ -9,6 +10,7 @@ const props = defineProps({
   }
 })
 
+const authStore = useAuthStore()
 const showModal = ref(false)
 const selectedLocation = ref(null)
 
@@ -46,6 +48,30 @@ const closeModal = () => {
   showModal.value = false
   selectedLocation.value = null
 }
+
+const reportFaultyHoneypot = async (honeypotId, port) => {
+  if (!confirm(`Report Honeypot ${honeypotId}:${port} as faulty?`)) return
+
+  try {
+    const response = await fetch('http://localhost:3000/api/auth/report-fault', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ honeypotId, port })
+    })
+
+    if (response.ok) {
+      alert('Report sent to admins')
+    } else {
+      alert('Failed to send report')
+    }
+  } catch (error) {
+    console.error('Error reporting fault:', error)
+    alert('Failed to send report')
+  }
+}
 </script>
 
 <template>
@@ -72,7 +98,17 @@ const closeModal = () => {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ formatDate(attack.timestamp) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-[#5fbfbb] font-mono">{{ attack.sourceIp }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-              <span class="font-mono">{{ attack.honeypotId }}:{{ attack.port }}</span>
+              <!-- Pulsante solo per user normali -->
+              <button 
+                v-if="authStore.user?.role !== 'admin'"
+                @click="reportFaultyHoneypot(attack.honeypotId, attack.port)"
+                class="font-mono text-orange-400 hover:text-orange-300 hover:underline focus:outline-none"
+                title="Report as faulty"
+              >
+                {{ attack.honeypotId }}:{{ attack.port }}
+              </button>
+              <!-- Testo normale per admin -->
+              <span v-else class="font-mono">{{ attack.honeypotId }}:{{ attack.port }}</span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate">{{ attack.description || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap">

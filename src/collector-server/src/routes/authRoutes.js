@@ -6,11 +6,13 @@ const {
     getMe,
     deleteOwnAccount
 } = require('../controllers/authController');
+const { reportFaultyHoneypot } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', protect, getMe);
 router.delete('/me', protect, deleteOwnAccount);
+router.post('/report-fault', protect, reportFaultyHoneypot);
 
 module.exports = router;

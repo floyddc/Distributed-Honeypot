@@ -166,6 +166,15 @@ export const useSocketStore = defineStore('socket', () => {
       }
     })
 
+    socket.value.on('honeypot_fault_report', (data) => {
+      console.log('Honeypot fault report received:', data)
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      
+      if (currentUser.role === 'admin') {
+        alert(`FAULT REPORT\n\nHoneypot: ${data.honeypotId}:${data.port}\nReported by: ${data.reportedBy}\n\n${data.message}`)
+      }
+    })
+
     socket.value.on('disconnect', () => {
       console.log('Disconnected from collector server')
     })

@@ -224,6 +224,30 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const reportFaultyHoneypot = async (req, res) => {
+    try {
+        const { honeypotId, port } = req.body;
+        const reportedBy = req.user.username;
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('honeypot_fault_report', {
+                honeypotId,
+                port,
+                reportedBy,
+                timestamp: new Date().toISOString(),
+                message: `Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`
+            });
+        }
+
+        console.log(`Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`);
+        res.json({ message: 'Report sent to admins' });
+    } catch (error) {
+        console.error('Error reporting faulty honeypot:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getUsers,
     updateUserRole,
@@ -231,5 +255,6 @@ module.exports = {
     controlHoneypot,
     getAttacks,
     clearAttacks,
-    deleteUser
+    deleteUser,
+    reportFaultyHoneypot
 };
