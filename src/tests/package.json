@@ -5,8 +5,9 @@
   "scripts": {
     "test:login": "node test-honeypot-login.js",
     "test:ssh": "node test-honeypot-ssh.js",
-    "test:gemini": "node test-GeminiAPI.js",
-    "test:stats": "node test-attack-stats.js"
+    "test:llm": "node test-LLM.js",
+    "test:stats": "node test-attack-stats.js",
+    "test:heartbeat": "node test-heartbeat.js"
   },
   "dependencies": {
     "axios": "^1.13.2",

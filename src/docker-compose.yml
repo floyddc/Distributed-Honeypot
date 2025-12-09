@@ -9,8 +9,10 @@ services:
       - PORT=3000
       - JWT_SECRET=supersecretkey_change_this_in_production
       - NODE_ENV=development
+      - OLLAMA_URL=http://ollama:11434  
     depends_on:
       - mongo
+      - ollama  
     networks:
       - app-network
     restart: unless-stopped
@@ -62,7 +64,6 @@ services:
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - SSH_PORT=2222
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -80,9 +81,21 @@ services:
       - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - collector-server
+    networks:
+      - app-network
+    restart: unless-stopped
+    
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-llm
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
     networks:
       - app-network
     restart: unless-stopped

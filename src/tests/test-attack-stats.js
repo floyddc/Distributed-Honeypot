@@ -3,15 +3,12 @@ const { io } = require('socket.io-client');
 const axios = require('axios');
 const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
-
 const runner = new TestRunner('Attack Statistics Tests');
 
 let collectorSocket;
 let capturedAttacks = [];
-
 let authToken = '';
 
-//prende il token per autenticare l'admin
 async function login() {
     try {
         const response = await axios.post('http://localhost:3000/api/auth/login', {
@@ -25,7 +22,6 @@ async function login() {
     }
 }
 
-//prende gli attacchi dal db
 async function fetchAttacks() {
     try {
         const response = await axios.get('http://localhost:3000/api/admin/attacks', {
@@ -57,15 +53,12 @@ runner.test('Connect to Collector Server', async () => {
 });
 
 runner.test('Verify Attack Persistence', async () => {
-    //Login
     await login();
 
-    //prende gli attacchi dal db
     const initialAttacks = await fetchAttacks();
     const initialCount = initialAttacks.length;
     console.log(`   Initial DB count: ${initialCount}`);
 
-    //performa un attacco ssh
     console.log('   Performing SSH login attempt...');
     await new Promise((resolve) => {
         const conn = new Client();
@@ -87,12 +80,10 @@ runner.test('Verify Attack Persistence', async () => {
     console.log('   Waiting for processing...');
     await new Promise(r => setTimeout(r, 2000));
 
-    //verifica che l'evento venga ricevuto via websocket
     const eventAttack = capturedAttacks.find(a => a.description.includes('stats_tester'));
     assert(eventAttack, 'Attack event should be received via WebSocket');
     assertEquals(eventAttack.type, 'login', 'Event type should be login');
 
-    //verifica che l'attacco venga salvato nel db
     const finalAttacks = await fetchAttacks();
     const finalCount = finalAttacks.length;
     console.log(`   Final DB count: ${finalCount}`);

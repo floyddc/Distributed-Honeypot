@@ -2,7 +2,6 @@ const { Client } = require('ssh2');
 const { io } = require('socket.io-client');
 const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
-
 const runner = new TestRunner('SSH Honeypot Tests');
 
 let collectorSocket;
@@ -23,7 +22,6 @@ runner.test('Connect to Collector Server', async () => {
 
         collectorSocket.on('new_attack', (data) => {
             console.log('   Received attack data:', data);
-            // Accept 'login' type which is what the honeypot actually sends for auth attempts
             if (data.type === 'login' || data.attackType === 'ssh_connection') {
                 capturedData.push(data);
                 console.log('   SSH attack captured - test will complete!');
@@ -93,10 +91,8 @@ runner.test('Single SSH authentication attempt', async () => {
 
     const lastAttack = capturedData[capturedData.length - 1];
     assertEquals(lastAttack.honeypotId, 'node2', 'SSH Honeypot ID should be node2');
-    // Check for type 'login' which is what we see in the logs
     assertEquals(lastAttack.type, 'login', 'Attack type should be login');
 
-    // Username and password are in the description for login events
     assert(lastAttack.description.includes('admin'), 'Description should contain username admin');
     assert(lastAttack.description.includes('password123'), 'Description should contain password');
 

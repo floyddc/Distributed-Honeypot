@@ -3,8 +3,8 @@ const path = require('path');
 const multer = require('multer');
 const { io } = require('socket.io-client');
 const DataBuffer = require('./utils/buffer.cjs');
-const { getGeoData, getPublicIP } = require('./utils/helpers.cjs');
-const { evaluateFileSeverity } = require('./utils/GeminiAPI.js');
+const getGeoData = require('./utils/helpers.cjs');
+const analyzeFileUpload = require('./utils/LLM.js');
 const buffer = new DataBuffer(100);
 const HONEYPOT_ID = 'node3';
 const PORT = 3003;
@@ -76,14 +76,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         const fileName = req.file.originalname;
         const fileExtension = fileName.split('.').pop();
         const geoData = await getGeoData(clientIp);
-        const severity = await evaluateFileSeverity(fileExtension);
-
+        const {severity, description} = await analyzeFileUpload(fileName, fileExtension, req.file.size);
+        
         const attackData = {
             honeypotId: HONEYPOT_ID,
             port: PORT,
             sourceIp: clientIp,
             severity: severity,
-            description: `.${fileExtension} upload`,
+            description: description,
             timestamp: new Date().toISOString(),
             geoData: geoData
         };

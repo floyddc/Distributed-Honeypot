@@ -1,7 +1,7 @@
 const { io } = require('socket.io-client');
+const axios = require('axios');
 const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
-
 const runner = new TestRunner('Heartbeat Tests');
 
 let collectorSocket;
@@ -12,7 +12,7 @@ runner.test('Connect to Collector Server', async () => {
         collectorSocket = io('http://localhost:3000');
 
         collectorSocket.on('connect', () => {
-            console.log('Connected to collector server');
+            console.log('   Connected to collector server');
             resolve();
         });
 
@@ -29,99 +29,83 @@ runner.test('Connect to Collector Server', async () => {
     });
 });
 
-runner.test('Wait for honeypot status changes (15 seconds)', async () => {
-    console.log('   Waiting for honeypots to send their initial status...');
+runner.test('Verify all honeypots are online via API', async () => {
+    console.log('   Fetching honeypot statuses from API...');
 
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            console.log(`   Total status changes received: ${statusChanges.length}`);
-            resolve();
-        }, 15000);
-    });
-});
+    const response = await axios.get('http://localhost:3000/api/honeypots');
+    const honeypots = response.data;
 
-runner.test('Verify all honeypots are online', async () => {
-    console.log('   Checking honeypot statuses...');
+    console.log(`   Found ${honeypots.length} honeypots`);
 
-    assert(statusChanges.length >= 3, `Expected at least 3 status changes, got ${statusChanges.length}`);
+    assert(honeypots.length >= 3, 
+        `Expected at least 3 honeypots, got ${honeypots.length}`);
 
-    const expectedHoneypots = ['node1', 'node2', 'node3'];
-    const onlineHoneypots = statusChanges
-        .filter(s => s.status === 'online')
-        .map(s => s.honeypotId);
+    const expectedHoneypots = [
+        { id: 'node1', port: 3001 },
+        { id: 'node2', port: 2222 },
+        { id: 'node3', port: 3003 }
+    ];
 
-    console.log('   Online honeypots:', onlineHoneypots);
-
-    for (const nodeId of expectedHoneypots) {
-        assert(
-            onlineHoneypots.includes(nodeId),
-            `Honeypot ${nodeId} should be online`
-        );
-        console.log(`   ${nodeId} is online`);
+    for (const expected of expectedHoneypots) {
+        const honeypot = honeypots.find(h => h.honeypotId === expected.id);
+        
+        assert(honeypot, `Honeypot ${expected.id} should exist`);
+        assertEquals(honeypot.status, 'online', 
+            `${expected.id} should be online`);
+        assertEquals(honeypot.port, expected.port, 
+            `${expected.id} should be on port ${expected.port}`);
+        
+        console.log(`   ${expected.id}: online on port ${expected.port}`);
     }
-
-    // Verifica le porte
-    const node1 = statusChanges.find(s => s.honeypotId === 'node1');
-    const node2 = statusChanges.find(s => s.honeypotId === 'node2');
-    const node3 = statusChanges.find(s => s.honeypotId === 'node3');
-
-    if (node1) assertEquals(node1.port, 3001, 'Node1 port should be 3001');
-    if (node2) assertEquals(node2.port, 2222, 'Node2 port should be 2222');
-    if (node3) assertEquals(node3.port, 3003, 'Node3 port should be 3003');
-
-    console.log('   All honeypots are online with correct ports');
 });
 
-runner.test('Monitor heartbeats for 20 seconds', async () => {
-    console.log('   Monitoring heartbeats...');
+runner.test('Monitor real-time status changes (30 seconds)', async () => {
+    console.log('   Listening for real-time status changes...');
+    console.log('   (Restart a honeypot to see events)');
 
     return new Promise((resolve) => {
-        let heartbeatCount = statusChanges.length;
-
+        const initialCount = statusChanges.length;
+        
         const interval = setInterval(() => {
-            if (statusChanges.length > heartbeatCount) {
-                console.log(`   Heartbeat activity detected (${statusChanges.length - heartbeatCount} new events)`);
-                heartbeatCount = statusChanges.length;
+            if (statusChanges.length > initialCount) {
+                const newEvents = statusChanges.length - initialCount;
+                console.log(`   Received ${newEvents} status change events`);
             }
         }, 5000);
 
         setTimeout(() => {
             clearInterval(interval);
-            console.log(`   Monitoring complete. Total events: ${statusChanges.length}`);
+            
+            if (statusChanges.length > initialCount) {
+                console.log(`   Status change detection working!`);
+            } else {
+                console.log(`   No status changes detected (this is OK if nodes didn't restart)`);
+            }
+            
             resolve();
-        }, 20000);
+        }, 30000);
     });
 });
 
-runner.test('Test offline detection (stop one honeypot)', async () => {
-    console.log('   Testing offline detection...');
-    console.log('   Note: This test requires manually stopping one honeypot');
-    console.log('   You can stop node3 with: docker stop honeypot-node3');
-    console.log('   Waiting 20 seconds for offline detection...');
+runner.test('Verify heartbeat mechanism', async () => {
+    console.log('   Checking last heartbeat times...');
 
-    const initialOffline = statusChanges.filter(s => s.status === 'offline').length;
+    const response = await axios.get('http://localhost:3000/api/honeypots');
+    const honeypots = response.data;
 
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const currentOffline = statusChanges.filter(s => s.status === 'offline').length;
-
-            if (currentOffline > initialOffline) {
-                console.log('   Offline detection working! A honeypot went offline');
-
-                const offlineNode = statusChanges
-                    .reverse()
-                    .find(s => s.status === 'offline');
-
-                if (offlineNode) {
-                    console.log(`   Offline honeypot: ${offlineNode.honeypotId}`);
-                }
-            } else {
-                console.log('   No honeypots went offline during test (this is OK)');
-            }
-
-            resolve();
-        }, 20000);
-    });
+    const now = new Date();
+    
+    for (const honeypot of honeypots) {
+        const lastSeen = new Date(honeypot.lastSeen);
+        const timeDiff = (now - lastSeen) / 1000; // seconds
+        
+        assert(timeDiff < 15, 
+            `${honeypot.honeypotId} last seen ${timeDiff}s ago (should be < 15s)`);
+        
+        console.log(`   ${honeypot.honeypotId}: last seen ${timeDiff.toFixed(1)}s ago`);
+    }
+    
+    console.log('   All honeypots are sending heartbeats');
 });
 
 (async () => {
@@ -132,16 +116,15 @@ runner.test('Test offline detection (stop one honeypot)', async () => {
 
         await runner.run();
 
-        console.log(chalk.green('\nHEARTBEAT TESTS COMPLETED!'));
-        console.log(chalk.blue(`Total status changes captured: ${statusChanges.length}`));
-        console.log(chalk.blue(`Honeypots detected:`));
-
-        const uniqueHoneypots = [...new Set(statusChanges.map(s => s.honeypotId))];
-        uniqueHoneypots.forEach(id => {
-            const lastStatus = [...statusChanges]
-                .reverse()
-                .find(s => s.honeypotId === id);
-            console.log(chalk.blue(`   - ${id}: ${lastStatus?.status || 'unknown'}`));
+        console.log(chalk.green('\n✅ HEARTBEAT TESTS COMPLETED!'));
+        
+        const response = await axios.get('http://localhost:3000/api/honeypots');
+        console.log(chalk.blue(`\nHoneypots status:`));
+        
+        response.data.forEach(hp => {
+            const lastSeen = new Date(hp.lastSeen);
+            const timeDiff = ((new Date() - lastSeen) / 1000).toFixed(1);
+            console.log(chalk.blue(`   - ${hp.honeypotId}: ${hp.status} (last seen ${timeDiff}s ago)`));
         });
 
         console.log(chalk.gray('='.repeat(60)));
@@ -155,14 +138,12 @@ runner.test('Test offline detection (stop one honeypot)', async () => {
         process.exit(0);
 
     } catch (error) {
-        console.error(chalk.red('\nHEARTBEAT TEST FAILED:'), error);
+        console.error(chalk.red('\nHEARTBEAT TEST FAILED:'), error.message);
 
         if (collectorSocket) {
             collectorSocket.disconnect();
-            console.log(chalk.yellow('Disconnected from collector server (after error)'));
         }
 
-        console.log(chalk.red('Test failed.'));
         process.exit(1);
     }
 })();

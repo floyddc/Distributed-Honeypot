@@ -2,7 +2,6 @@ const puppeteer = require('puppeteer');
 const { io } = require('socket.io-client');
 const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
-
 const runner = new TestRunner('Login Honeypot Tests');
 
 let collectorSocket;
@@ -21,8 +20,9 @@ runner.test('Connect to Collector Server', async () => {
             reject(new Error(`Failed to connect to collector: ${error.message}`));
         });
 
-        collectorSocket.on('honeypot_data', (data) => {
-            console.log('   Received honeypot data:', data);
+        // Ascolta l'evento corretto
+        collectorSocket.on('new_attack', (data) => {
+            console.log('   Received attack data:', data);
             if (data.honeypotId === 'node1') {
                 capturedData.push(data);
                 console.log('   Login attack captured - test will complete!');
@@ -83,21 +83,22 @@ runner.test('Single login authentication attempt', async () => {
 
         const lastAttack = capturedData[capturedData.length - 1];
 
+        // Verifica nuovo formato
         assertEquals(lastAttack.honeypotId, 'node1', 'Honeypot ID should be node1');
-        assertEquals(lastAttack.protocol, 'HTTP', 'Protocol should be HTTP');
-        assertEquals(lastAttack.destinationPort, 3001, 'Port should be 3001');
+        assertEquals(lastAttack.port, 3001, 'Port should be 3001');
 
-        const payload = JSON.parse(lastAttack.payload);
-        assertEquals(payload.username, 'admin', 'Username should be admin');
-        assertEquals(payload.password, 'password123', 'Password should be password123');
+        assert(['low', 'medium', 'critical'].includes(lastAttack.severity),
+            'Severity should be low, medium or critical');
 
-        assert(['low', 'medium', 'critical', 'high'].includes(lastAttack.severity),
-            'Severity should be evaluated');
+        assert(lastAttack.description, 'Description should exist');
+        assert(lastAttack.sourceIp, 'Source IP should exist');
+        assert(lastAttack.timestamp, 'Timestamp should exist');
 
         assert(lastAttack.geoData, 'Geo data should exist');
         assert(lastAttack.geoData.country, 'Country should be present');
 
         console.log(`   Severity: ${lastAttack.severity}`);
+        console.log(`   Description: ${lastAttack.description}`);
         console.log(`   Location: ${lastAttack.geoData.city}, ${lastAttack.geoData.country}`);
         console.log('   Single login attack successfully captured and verified!');
 
