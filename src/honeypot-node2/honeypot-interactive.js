@@ -1,7 +1,7 @@
 const { Server } = require('ssh2');
 const crypto = require('crypto');
 const { io } = require('socket.io-client');
-const getGeoData = require('./utils/helpers.cjs');
+const { getGeoData } = require('./utils/helpers.cjs');
 const HONEYPOT_ID = 'node2';
 const PORT = process.env.SSH_PORT || 2222;
 let heartbeatInterval;
