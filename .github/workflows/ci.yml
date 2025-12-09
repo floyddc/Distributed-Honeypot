@@ -60,6 +60,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Create .env file
+      run: |
+        cd src
+        echo "# Ollama conf" > .env
+
     - name: Start Containers
       run: |
         cd src
