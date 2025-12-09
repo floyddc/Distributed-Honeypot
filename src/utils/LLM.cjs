@@ -1,9 +1,3 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
-
 function quickAnalyzeLogin(username, password) {
   const combined = `${username} ${password}`.toLowerCase();
   
@@ -40,7 +34,7 @@ function quickAnalyzeFile(fileExtension) {
   return 'low';
 }
 
-export async function analyzeLogin(username, password, useLLM = false) {
+async function analyzeLogin(username, password, useLLM = false) {
   const quickResult = quickAnalyzeLogin(username, password);
   if (quickResult.severity === 'critical') {
     console.log('Quick detection:', quickResult.description);
@@ -49,7 +43,7 @@ export async function analyzeLogin(username, password, useLLM = false) {
   return quickResult;
 }
 
-export async function analyzeFileUpload(filename, fileExtension, fileSize, useLLM = false) {
+async function analyzeFileUpload(filename, fileExtension, fileSize, useLLM = false) {
   const severity = quickAnalyzeFile(fileExtension);
   console.log(`File analysis: ${filename} (${fileExtension}) → ${severity}`);
   return {
@@ -57,3 +51,8 @@ export async function analyzeFileUpload(filename, fileExtension, fileSize, useLL
     description: `File upload: .${fileExtension}`
   };
 }
+
+module.exports = {
+  analyzeLogin,
+  analyzeFileUpload
+};

@@ -3,7 +3,7 @@ const path = require('path');
 const { io } = require('socket.io-client');
 const DataBuffer = require('./utils/buffer.cjs');
 const { getGeoData } = require('./utils/helpers.cjs');
-const { analyzeLogin } = require('./utils/LLM.js');
+const { analyzeLogin } = require('./utils/LLM.cjs');
 const HONEYPOT_ID = 'node1';
 const PORT = 3001;
 let heartbeatInterval;

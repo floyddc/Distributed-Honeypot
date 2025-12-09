@@ -1,4 +1,4 @@
-import { analyzeLogin, analyzeFileUpload } from '../utils/LLM.js';
+import { analyzeLogin, analyzeFileUpload } from '../utils/LLM.cjs';
 import { strict as assert } from 'assert';
 
 let passed = 0;
