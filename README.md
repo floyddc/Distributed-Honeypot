@@ -60,7 +60,7 @@
 ### How Honeypot-node2 works
 - Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
 - Interact with it and check the dashboard.
-- _Delete your host key after first use_: `ssh-keygen -R localhost:2222`
+- _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
 
 ### How Honeypot-node3 works
 - Visit http://localhost:3003 to visit the fake file uploader.

@@ -24,3 +24,29 @@ body {
 .glass-card {
     @apply bg-[rgba(22,21,21,0.8)] border border-[#5fbfbb] rounded-lg shadow-sm p-4;
 }
+
+.Vue-Toastification__toast {
+  background-color: rgba(22, 21, 21, 0.95) !important;
+  border: 1px solid #5fbfbb !important;
+  backdrop-filter: blur(8px);
+}
+
+.Vue-Toastification__toast--success {
+  border-color: #10b981 !important;
+}
+
+.Vue-Toastification__toast--error {
+  border-color: #ef4444 !important;
+}
+
+.Vue-Toastification__toast--warning {
+  border-color: #f59e0b !important;
+}
+
+.Vue-Toastification__toast--info {
+  border-color: #5fbfbb !important;
+}
+
+.Vue-Toastification__progress-bar {
+  background-color: #5fbfbb !important;
+}

@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from 'vue-toastification'
 import LocationMapModal from './LocationMapModal.vue'
+import ReportModal from './ReportModal.vue'
 
 const props = defineProps({
   attacks: {
@@ -10,9 +12,12 @@ const props = defineProps({
   }
 })
 
+const toast = useToast()
 const authStore = useAuthStore()
 const showModal = ref(false)
 const selectedLocation = ref(null)
+const showReportModal = ref(false)
+const selectedHoneypot = ref({ honeypotId: '', port: '' })
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('it-IT', {
@@ -49,28 +54,13 @@ const closeModal = () => {
   selectedLocation.value = null
 }
 
-const reportFaultyHoneypot = async (honeypotId, port) => {
-  if (!confirm(`Report Honeypot ${honeypotId}:${port} as faulty?`)) return
+const openReportModal = (honeypotId, port) => {
+  selectedHoneypot.value = { honeypotId, port }
+  showReportModal.value = true
+}
 
-  try {
-    const response = await fetch('http://localhost:3000/api/auth/report-fault', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({ honeypotId, port })
-    })
-
-    if (response.ok) {
-      alert('Report sent to admins')
-    } else {
-      alert('Failed to send report')
-    }
-  } catch (error) {
-    console.error('Error reporting fault:', error)
-    alert('Failed to send report')
-  }
+const closeReportModal = () => {
+  showReportModal.value = false
 }
 </script>
 
@@ -98,16 +88,16 @@ const reportFaultyHoneypot = async (honeypotId, port) => {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ formatDate(attack.timestamp) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-[#5fbfbb] font-mono">{{ attack.sourceIp }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
-              <!-- Pulsante solo per user normali -->
+              <!-- Button for users -->
               <button 
                 v-if="authStore.user?.role !== 'admin'"
-                @click="reportFaultyHoneypot(attack.honeypotId, attack.port)"
+                @click="openReportModal(attack.honeypotId, attack.port)"
                 class="font-mono text-orange-400 hover:text-orange-300 hover:underline focus:outline-none"
                 title="Report as faulty"
               >
                 {{ attack.honeypotId }}:{{ attack.port }}
               </button>
-              <!-- Testo normale per admin -->
+              <!-- Text for admin -->
               <span v-else class="font-mono">{{ attack.honeypotId }}:{{ attack.port }}</span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate">{{ attack.description || '-' }}</td>
@@ -145,6 +135,12 @@ const reportFaultyHoneypot = async (honeypotId, port) => {
       v-if="showModal" 
       :location="selectedLocation"
       @close="closeModal"
+    />
+    <ReportModal
+      v-if="showReportModal"
+      :honeypotId="selectedHoneypot.honeypotId"
+      :port="selectedHoneypot.port"
+      @close="closeReportModal"
     />
   </div>
 </template>

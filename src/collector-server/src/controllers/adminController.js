@@ -226,7 +226,7 @@ const deleteUser = async (req, res) => {
 
 const reportFaultyHoneypot = async (req, res) => {
     try {
-        const { honeypotId, port } = req.body;
+        const { honeypotId, port, message } = req.body;  
         const reportedBy = req.user.username;
 
         const io = req.app.get('io');
@@ -236,7 +236,7 @@ const reportFaultyHoneypot = async (req, res) => {
                 port,
                 reportedBy,
                 timestamp: new Date().toISOString(),
-                message: `Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`
+                message: message || `Honeypot ${honeypotId}:${port} reported as faulty` 
             });
         }
 

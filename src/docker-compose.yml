@@ -11,7 +11,6 @@ services:
       - PORT=3000
       - JWT_SECRET=supersecretkey_change_this_in_production
       - NODE_ENV=development
-      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - mongo
     networks:
@@ -46,7 +45,6 @@ services:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - MAX_RETRIES=3
       - RETRY_DELAY=2000
-      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -65,7 +63,6 @@ services:
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - SSH_PORT=2222
-      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -83,7 +80,6 @@ services:
       - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
-      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:

@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { io } from 'socket.io-client'
 import { ref, watch } from 'vue'
+import { io } from 'socket.io-client'
+import { useToast } from 'vue-toastification'
+import ReportToastContent from '../components/ReportToastContent.vue'
 
 export const useSocketStore = defineStore('socket', () => {
   const socket = ref(null)
@@ -8,6 +10,7 @@ export const useSocketStore = defineStore('socket', () => {
   const honeypots = ref([])
   const liveSessions = ref({})
   const terminalSessions = ref({})
+  const reportToastIds = new Set() 
   
   // fallback
   const loadSessionsFromStorage = () => {
@@ -120,6 +123,11 @@ export const useSocketStore = defineStore('socket', () => {
   }
 
   const connect = () => {
+    if (socket.value) {
+      socket.value.removeAllListeners()
+      socket.value.disconnect()
+    }
+
     socket.value = io('http://localhost:3000')
 
     socket.value.on('connect', async () => {
@@ -157,14 +165,17 @@ export const useSocketStore = defineStore('socket', () => {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
       
       if (currentUser._id === data.userId) {
-        alert(data.message || 'Your account has been deleted by an admin')
-         setTimeout(() => {
-            localStorage.removeItem('user')
-            localStorage.removeItem('token')
-            localStorage.removeItem('liveSessions')
-            localStorage.removeItem('terminalSessions')
-            window.location.href = '/login'
-          }, 3000)  // 3s
+        const toast = useToast()
+        toast.error(data.message || 'Your account has been deleted by an admin', {
+          timeout: 3000
+        })
+        setTimeout(() => {
+          localStorage.removeItem('user')
+          localStorage.removeItem('token')
+          localStorage.removeItem('liveSessions')
+          localStorage.removeItem('terminalSessions')
+          window.location.href = '/login'
+        }, 3000)
       }
     })
 
@@ -264,7 +275,10 @@ export const useSocketStore = defineStore('socket', () => {
       if (currentUser._id === data.userId) {
         currentUser.role = data.newRole
         localStorage.setItem('user', JSON.stringify(currentUser))
-        alert(data.message || `You have been promoted to ${data.newRole}`)
+        const toast = useToast()
+        toast.success(data.message || `You have been promoted to ${data.newRole}`, {
+          timeout: 3000
+        })
         setTimeout(() => {
           window.location.reload()
         }, 3000)
@@ -276,7 +290,25 @@ export const useSocketStore = defineStore('socket', () => {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
       
       if (currentUser.role === 'admin') {
-        alert(`FAULT REPORT\n\nHoneypot: ${data.honeypotId}:${data.port}\nReported by: ${data.reportedBy}\n\n${data.message}`)
+        const reportId = `${data.honeypotId}-${data.port}-${data.reportedBy}-${Date.now()}`
+        
+        if (reportToastIds.has(reportId)) {
+          return
+        }
+        reportToastIds.add(reportId)
+        
+        setTimeout(() => reportToastIds.delete(reportId), 1000)
+        
+        const toast = useToast()
+        toast.warning({
+          component: ReportToastContent,
+          props: {
+            report: data
+          }
+        }, {
+          timeout: 0, 
+          closeButton: true
+        })
       }
     })
 
@@ -287,8 +319,11 @@ export const useSocketStore = defineStore('socket', () => {
 
   const disconnect = () => {
     if (socket.value) {
+      socket.value.removeAllListeners()
       socket.value.disconnect()
+      socket.value = null
     }
+    reportToastIds.clear() 
   }
 
   const clearAllSessions = () => {

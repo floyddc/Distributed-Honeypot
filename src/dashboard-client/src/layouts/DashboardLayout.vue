@@ -3,10 +3,12 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useSocketStore } from '../stores/socket'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore()
 const router = useRouter()
+const toast = useToast()
 const sidebarOpen = ref(false)
 
 const systemStatus = computed(() => {
@@ -21,29 +23,28 @@ const handleLogout = () => {
 }
 
 const handleDeleteAccount = async () => {
-  const confirmed = confirm('Are you sure you want to delete your account? This action cannot be undone.')
+  const confirmed = confirm('Are you sure?')
   if (!confirmed) return
 
   try {
     const response = await fetch('http://localhost:3000/api/auth/me', {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
     })
 
     if (response.ok) {
-      alert('Your account has been deleted successfully.')
-      socketStore.disconnect()
-      authStore.logout()
-      router.push('/login')
+      toast.success('Account deleted successfully')
+      setTimeout(() => {
+        socketStore.disconnect()
+        authStore.logout()
+        router.push('/login')
+      }, 1000)
     } else {
       const data = await response.json()
-      alert(data.message || 'Failed to delete account')
+      toast.error(data.message || 'Failed to delete account')
     }
   } catch (error) {
-    console.error('Error deleting account:', error)
-    alert('Failed to delete account')
+    toast.error('Failed to delete account')
   }
 }
 
