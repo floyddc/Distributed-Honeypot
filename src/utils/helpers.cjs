@@ -12,38 +12,28 @@ async function getGeoData(ip) {
             lon: response.data.longitude || null
         };
     } catch (error) {
-        console.error('Error fetching geo data:', error);
-        return {
-            country: 'unknown',
-            city: 'unknown',
-            lat: null,
-            lon: null
-        };
-    }
-}
-
-function calculateSeverity(username, password) {
-    if (username === 'admin' && password === 'admin123') {
-        return 'high';
-    }
-    if (username === 'root') {
-        return 'medium';
-    }
-    return 'low';
-}
-
-async function getPublicIP() {
-    try {
-        const response = await axios.get('https://api.ipify.org?format=json');
-        return response.data.ip;
-    } catch (error) {
-        console.error('Error fetching public IP:', error);
-        return 'unknown';
+        console.error('Primary geo API (ipapi.co) failed, trying fallback:', error);
+        // Fallback
+        try {
+            const response = await axios.get(`http://ip-api.com/json/${ip}`);
+            return {
+                country: response.data.country || 'unknown',
+                city: response.data.city || 'unknown',
+                lat: response.data.lat || null,
+                lon: response.data.lon || null
+            };
+        } catch (fallbackError) {
+            console.error('Fallback geo API (ip-api.com) also failed:', fallbackError);
+            return {
+                country: 'unknown',
+                city: 'unknown',
+                lat: null,
+                lon: null
+            };
+        }
     }
 }
 
 module.exports = {
-    getGeoData,
-    calculateSeverity,
-    getPublicIP
+    getGeoData
 };

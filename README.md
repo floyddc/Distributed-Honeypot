@@ -20,7 +20,6 @@
 
 - In another Terminal (**only on first use**):
   - `docker exec -it collector-server node scripts/seed-db.js` to create pre-set users.
-  - `./src/init-ollama.sh` to download llama3.2:1b model.
 
 - Run a client to open a dashboard:
   - `cd src/dashboard-client`
@@ -61,7 +60,7 @@
 ### How Honeypot-node2 works
 - Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
 - Interact with it and check the dashboard.
-- _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
+- _Delete your host key after first use_: `ssh-keygen -R localhost:2222`
 
 ### How Honeypot-node3 works
 - Visit http://localhost:3003 to visit the fake file uploader.
@@ -95,7 +94,6 @@
     ├───honeypot-node3
     │   └───src
     ├───mongo-data
-    ├───ollama-data
     ├───tests
     │   └───utils
     └───utils

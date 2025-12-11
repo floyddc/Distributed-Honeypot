@@ -32,5 +32,4 @@ Thumbs.db
 /src/collector-server/node_modules
 /src/dashboard-client/node_modules
 /src/mongo-data
-/src/ollama-data
 /docs_private

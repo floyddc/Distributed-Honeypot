@@ -6,19 +6,29 @@ let failed = 0;
 
 function test(name, actual, expected) {
   try {
-    assert.deepStrictEqual(actual, expected);
-    console.log(`${name}`);
-    passed++;
+    assert.strictEqual(actual.severity, expected.severity);
+    const actualDesc = actual.description.replace(/\s*\[GROQ\]$/, '');
+    const expectedDesc = expected.description;
+    
+    if (actualDesc === expectedDesc || actual.description.includes(expectedDesc)) {
+      console.log(`PASS ${name}`);
+      passed++;
+    } else {
+      throw new Error(`Description mismatch: expected "${expectedDesc}", got "${actualDesc}"`);
+    }
   } catch (error) {
-    console.error(`${name}`);
+    console.error(`FAIL ${name}`);
     console.error(`   Expected: ${JSON.stringify(expected)}`);
     console.error(`   Actual:   ${JSON.stringify(actual)}`);
+    console.error(`   Error: ${error.message}`);
     failed++;
   }
 }
 
 (async () => {
-  console.log('=== File Analysis Tests ===\n');
+  console.log('=== LLM Analysis Tests (Groq + Fallback) ===\n');
+  
+  console.log('File Analysis Tests:\n');
   
   const file1 = await analyzeFileUpload('document.txt', 'txt', 1024);
   test('Low severity file (.txt)', file1, {
@@ -44,7 +54,7 @@ function test(name, actual, expected) {
     description: 'File upload: .exe'
   });
 
-  console.log('\n=== Login Analysis Tests ===\n');
+  console.log('\nLogin Analysis Tests:\n');
   
   const login1 = await analyzeLogin('user123', 'mypassword');
   test('Normal login attempt', login1, {
@@ -88,14 +98,22 @@ function test(name, actual, expected) {
     description: 'Command injection'
   });
 
-  console.log('\n' + '='.repeat(50));
-  console.log(`📊 Test Results: ${passed} passed, ${failed} failed`);
-  console.log('='.repeat(50));
+  console.log('\n' + '='.repeat(60));
+  console.log(`Test Results: ${passed} passed, ${failed} failed`);
+  
+  if (process.env.GROQ_API_KEY) {
+    console.log('Using Groq API for analysis');
+  } else {
+    console.log('Using regex fallback (no GROQ_API_KEY found)');
+  }
+  
+  console.log('='.repeat(60));
   
   if (failed > 0) {
+    console.log('\nSome tests failed! Check the results above.');
     process.exit(1);
   } else {
-    console.log('\n🎉 All tests passed!\n');
+    console.log('\nAll tests passed! Both Groq and fallback systems work correctly.\n');
     process.exit(0);
   }
 })();

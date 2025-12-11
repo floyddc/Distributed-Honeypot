@@ -4,15 +4,16 @@ services:
     container_name: collector-server
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - MONGO_URI=mongodb://mongo:27017/distributed-honeypot
       - PORT=3000
       - JWT_SECRET=supersecretkey_change_this_in_production
       - NODE_ENV=development
-      - OLLAMA_URL=http://ollama:11434  
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - mongo
-      - ollama  
     networks:
       - app-network
     restart: unless-stopped
@@ -45,7 +46,7 @@ services:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - MAX_RETRIES=3
       - RETRY_DELAY=2000
-        
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -64,6 +65,7 @@ services:
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
       - SSH_PORT=2222
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:
@@ -81,25 +83,13 @@ services:
       - .env
     environment:
       - COLLECTOR_SERVER_URL=http://collector-server:3000
+      - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       - collector-server
     networks:
       - app-network
     restart: unless-stopped
-    
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama-llm
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./ollama-data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    networks:
-      - app-network
-    restart: unless-stopped
-    
+
 networks:
   app-network:
     driver: bridge

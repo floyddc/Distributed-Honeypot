@@ -63,30 +63,34 @@ jobs:
     - name: Create .env file
       run: |
         cd src
-        echo "# Ollama conf" > .env
+        echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
 
     - name: Start Containers
       run: |
         cd src
         docker compose up -d --build
-        sleep 30 # Wait for services to be ready
+        sleep 30
+
+    - name: Verify Services
+      run: |
+        cd src
+        docker compose ps
 
     - name: Run Integration Tests
       run: |
         cd src
-        # Seed the database prima per creare l'admin
         docker exec collector-server node scripts/seed-db.js
         
         cd tests
         npm install
+        npm run test:llm
         npm run test:heartbeat
         npm run test:stats
         npm run test:login
         npm run test:ssh
-        npm run test:llm
 
     - name: Stop Containers
       if: always()
       run: |
         cd src
-        docker compose down
+        docker compose down -v

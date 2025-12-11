@@ -97,7 +97,7 @@ runner.test('Verify heartbeat mechanism', async () => {
     
     for (const honeypot of honeypots) {
         const lastSeen = new Date(honeypot.lastSeen);
-        const timeDiff = (now - lastSeen) / 1000; // seconds
+        const timeDiff = (now - lastSeen) / 1000; 
         
         assert(timeDiff < 15, 
             `${honeypot.honeypotId} last seen ${timeDiff}s ago (should be < 15s)`);

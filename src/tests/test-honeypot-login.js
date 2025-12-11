@@ -20,7 +20,6 @@ runner.test('Connect to Collector Server', async () => {
             reject(new Error(`Failed to connect to collector: ${error.message}`));
         });
 
-        // Ascolta l'evento corretto
         collectorSocket.on('new_attack', (data) => {
             console.log('   Received attack data:', data);
             if (data.honeypotId === 'node1') {
@@ -83,7 +82,6 @@ runner.test('Single login authentication attempt', async () => {
 
         const lastAttack = capturedData[capturedData.length - 1];
 
-        // Verifica nuovo formato
         assertEquals(lastAttack.honeypotId, 'node1', 'Honeypot ID should be node1');
         assertEquals(lastAttack.port, 3001, 'Port should be 3001');
 
