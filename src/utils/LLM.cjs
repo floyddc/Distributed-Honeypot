@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 let groq = null;
 try {
   const Groq = require('groq-sdk');
