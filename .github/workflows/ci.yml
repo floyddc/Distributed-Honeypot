@@ -69,12 +69,49 @@ jobs:
       run: |
         cd src
         docker compose up -d --build
-        sleep 30
 
+    - name: Wait for MongoDB Replica Set
+      run: |
+        cd src
+        echo "Waiting for MongoDB replica set to be ready..."
+        for i in {1..60}; do
+          if docker exec mongo1 mongosh --eval "rs.status()" 2>/dev/null | grep -q "PRIMARY"; then
+            echo "Replica set is ready"
+            break
+          fi
+          echo "Waiting... ($i/60)"
+          sleep 5
+        done
+
+    - name: Wait for Collector Server
+      run: |
+        cd src
+        echo "Waiting for collector server..."
+        for i in {1..30}; do
+          if curl -f http://localhost:3000/ 2>/dev/null; then
+            echo "Collector server is ready"
+            break
+          fi
+          echo "Waiting... ($i/30)"
+          sleep 3
+        done
+      
     - name: Verify Services
       run: |
         cd src
+        echo "=== Container Status ==="
         docker compose ps
+        echo "=== Replica Set Status ==="
+        docker exec mongo1 mongosh --eval "rs.status().members.forEach(m => print(m.name + ': ' + m.stateStr))"
+
+
+    - name: Seed Database
+      run: |
+        cd src
+        echo "Seeding database..."
+        docker exec collector-server node scripts/seed-db.js
+        echo "Verifying users created..."
+        docker exec collector-server node scripts/check-db.js
 
     - name: Run Integration Tests
       run: |

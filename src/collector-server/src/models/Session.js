@@ -43,8 +43,7 @@ const SessionSchema = new mongoose.Schema({
     },
     lastActivity: {
         type: Date,
-        default: Date.now,
-        index: true
+        default: Date.now
     },
     endTime: {
         type: Date

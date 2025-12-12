@@ -7,12 +7,19 @@ services:
     env_file:
       - .env
     environment:
-      - MONGO_URI=mongodb://mongo:27017/distributed-honeypot
+      - MONGO_URI=mongodb://mongo1:27017,mongo2:27017,mongo3:27017/distributed-honeypot?replicaSet=rs0
       - PORT=3000
       - JWT_SECRET=supersecretkey_change_this_in_production
       - NODE_ENV=development
     depends_on:
-      - mongo
+      mongo-init:
+        condition: service_completed_successfully
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy  
+      mongo3:
+        condition: service_healthy
     networks:
       - app-network
     restart: unless-stopped
@@ -21,16 +28,120 @@ services:
     user: root  
     privileged: true  
     
-  mongo:
-    image: mongo:latest
-    container_name: mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - ./mongo-data:/data/db
-    networks:
-      - app-network
-    restart: unless-stopped
+  mongo1:
+    image: mongo:6
+    container_name: mongo1
+    ports: ["27017:27017"]
+    command: ["mongod","--replSet","rs0","--bind_ip_all"]
+    volumes: ["./mongo-data/mongo1:/data/db"]
+    networks: ["app-network"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongo2:
+    image: mongo:6
+    container_name: mongo2
+    command: ["mongod","--replSet","rs0","--bind_ip_all"]
+    volumes: ["./mongo-data/mongo2:/data/db"]
+    networks: ["app-network"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongo3:
+    image: mongo:6
+    container_name: mongo3
+    command: ["mongod","--replSet","rs0","--bind_ip_all"]
+    volumes: ["./mongo-data/mongo3:/data/db"]
+    networks: ["app-network"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongo-init:
+    image: mongo:6
+    depends_on: 
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    networks: ["app-network"]
+    restart: "no"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "=== Initializing MongoDB Replica Set ==="
+        
+        # Wait for all nodes
+        echo "Waiting for MongoDB nodes to be ready..."
+        for i in {1..30}; do
+          if mongosh --host mongo1:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1 &&
+             mongosh --host mongo2:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1 &&
+             mongosh --host mongo3:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+            echo "✓ All MongoDB nodes are ready"
+            break
+          fi
+          echo "Waiting... ($$i/30)"
+          sleep 2
+        done
+        
+        # Initialize replica set
+        echo "Initializing replica set..."
+        mongosh --host mongo1:27017 --quiet --eval "
+          try {
+            let status = rs.status();
+            print('✓ Replica set already initialized');
+          } catch (e) {
+            if (e.codeName === 'NotYetInitialized') {
+              print('Initializing new replica set...');
+              let result = rs.initiate({
+                _id: 'rs0',
+                members: [
+                  { _id: 0, host: 'mongo1:27017', priority: 2 },
+                  { _id: 1, host: 'mongo2:27017', priority: 1 },
+                  { _id: 2, host: 'mongo3:27017', priority: 1 }
+                ]
+              });
+              
+              if (result.ok) {
+                print('✓ Replica set initialized successfully');
+                
+                // Wait for primary election
+                for (let i = 0; i < 15; i++) {
+                  try {
+                    let status = rs.status();
+                    let primary = status.members.find(m => m.stateStr === 'PRIMARY');
+                    if (primary) {
+                      print('✓ Primary elected: ' + primary.name);
+                      break;
+                    }
+                  } catch (e) {}
+                  print('Waiting for primary election... (' + (15-i) + 's)');
+                  sleep(2000);
+                }
+              } else {
+                print('Failed to initialize replica set');
+                printjson(result);
+              }
+            } else {
+              print('Error: ' + e.message);
+            }
+          }
+        "
+        echo "=== Replica Set Initialization Complete ==="
 
   honeypot-node1:
     build:

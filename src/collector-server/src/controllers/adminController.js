@@ -226,7 +226,16 @@ const deleteUser = async (req, res) => {
 
 const reportFaultyHoneypot = async (req, res) => {
     try {
-        const { honeypotId, port, message } = req.body;  
+        if (!req.user || !req.user.username) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        const { honeypotId, port, message } = req.body;
+        
+        if (!honeypotId || !port) {
+            return res.status(400).json({ message: 'honeypotId and port are required' });
+        }
+        
         const reportedBy = req.user.username;
 
         const io = req.app.get('io');
@@ -236,12 +245,17 @@ const reportFaultyHoneypot = async (req, res) => {
                 port,
                 reportedBy,
                 timestamp: new Date().toISOString(),
-                message: message || `Honeypot ${honeypotId}:${port} reported as faulty` 
+                message: message || `Honeypot ${honeypotId}:${port} reported as faulty`
             });
         }
 
         console.log(`Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`);
-        res.json({ message: 'Report sent to admins' });
+        res.json({ 
+            message: 'Report sent to admins',
+            honeypotId,
+            port,
+            reportedBy
+        });
     } catch (error) {
         console.error('Error reporting faulty honeypot:', error);
         res.status(500).json({ message: 'Server Error' });

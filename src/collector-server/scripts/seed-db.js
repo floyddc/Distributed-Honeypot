@@ -3,8 +3,10 @@ const mongoose = require('mongoose');
 const User = require('../src/models/User');
 const Honeypot = require('../src/models/Honeypot');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/distributed-honeypot';
-
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  'mongodb://mongo1:27017,mongo2:27017,mongo3:27017/distributed-honeypot?replicaSet=rs0';
+  
 const seedData = async () => {
     try {
         console.log(`Connecting to MongoDB at ${MONGO_URI}...`);

@@ -24,9 +24,9 @@ npm install --prefix src/honeypot-node1
 sleep 2
 echo "Dependecies for honeypot-node2..."
 npm install --prefix src/honeypot-node2
-sleep 
-npm install --prefix src/honeypot-node3
+sleep 2
 echo "Dependecies for honeypot-node3..."
+npm install --prefix src/honeypot-node3
 sleep 2
 echo "Dependecies for tests..."
 npm install --prefix src/tests
