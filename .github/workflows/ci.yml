@@ -114,6 +114,10 @@ jobs:
         docker exec collector-server node scripts/check-db.js
 
     - name: Run Integration Tests
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MQTT_URL: mqtt://localhost:1883
+        COLLECTOR_URL: http://localhost:3000
       run: |
         cd src
         docker exec collector-server node scripts/seed-db.js

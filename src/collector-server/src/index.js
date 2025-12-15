@@ -80,13 +80,13 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
 
 // Make io accessible in routes
 app.set('io', io);
+const mqttService = require('./mqtt')(io);
 
 // Basic Route
 app.get('/', (req, res) => {
     res.send('Distributed Honeypot Collector Server is running...');
 });
 
-const honeypotHeartbeats = new Map();
 const honeypotSockets = new Map();
 
 setInterval(async () => {
@@ -110,10 +110,6 @@ setInterval(async () => {
                 status: 'offline',
                 timestamp: new Date().toISOString()
             });
-
-            if (honeypotHeartbeats.has(hp.honeypotId)) {
-                honeypotHeartbeats.delete(hp.honeypotId);
-            }
         }
     } catch (error) {
         console.error('Error checking stale honeypots:', error);
@@ -141,7 +137,6 @@ setInterval(async () => {
         if (result.modifiedCount > 0) {
             console.log(`[DB] Marked ${result.modifiedCount} sessions as ended due to inactivity`);
             
-            // Notifica i client delle sessioni terminate
             const endedSessions = await Session.find({
                 status: 'ended',
                 endTime: { $gte: threshold }
@@ -164,73 +159,12 @@ io.on('connection', async (socket) => {
     console.log('A user/honeypot connected:', socket.id);
 
     try {
-        const activeSessions = await Session.find({ status: 'active' })
-            .select('sessionId honeypotId type lastActivity');
+        const activeSessions = await Session.find({ status: 'active' }).select('sessionId honeypotId type lastActivity');
         socket.emit('active_sessions', activeSessions);
         console.log(`[Socket] Sent ${activeSessions.length} active sessions to client ${socket.id}`);
     } catch (error) {
         console.error('[Socket] Error loading active sessions:', error);
     }
-
-    socket.on('honeypot_heartbeat', async (data) => {
-        const { honeypotId, port, timestamp } = data;
-
-        if (!port) {
-            console.error(`Heartbeat from ${honeypotId} missing port`);
-            return;
-        }
-
-        honeypotHeartbeats.set(honeypotId, Date.now());
-
-        try {
-            await Honeypot.findOneAndUpdate(
-                { honeypotId },
-                {
-                    status: 'online',
-                    lastSeen: new Date(timestamp),
-                    port: port
-                },
-                { upsert: true }
-            );
-            console.log(`Heartbeat from ${honeypotId}`);
-        } catch (error) {
-            console.error(`Error updating heartbeat for ${honeypotId}`);
-        }
-    });
-
-    socket.on('honeypot_status', async (data) => {
-        const { honeypotId, status, port, timestamp } = data;
-
-        if (!port) {
-            console.error(`Status from ${honeypotId} missing port`);
-            return;
-        }
-
-        honeypotHeartbeats.set(honeypotId, Date.now());
-
-        try {
-            await Honeypot.findOneAndUpdate(
-                { honeypotId },
-                {
-                    status,
-                    lastSeen: new Date(timestamp),
-                    port: port
-                },
-                { upsert: true }
-            );
-
-            io.emit('honeypot_status_change', {
-                honeypotId,
-                status,
-                port,
-                timestamp
-            });
-
-            console.log(`Honeypot ${honeypotId} is ${status} on port ${port}`);
-        } catch (error) {
-            console.error(`Error updating honeypot status for ${honeypotId}`);
-        }
-    });
 
     socket.on('honeypot_data', async (data) => {
         console.log('Received honeypot data:', data);
@@ -342,7 +276,6 @@ io.on('connection', async (socket) => {
                         timestamp: new Date().toISOString()
                     });
 
-                    honeypotHeartbeats.delete(honeypotId);
                     honeypotSockets.delete(honeypotId);
                 } catch (error) {
                     console.error(`Error marking honeypot ${honeypotId} offline`);

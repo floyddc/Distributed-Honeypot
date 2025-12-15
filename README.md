@@ -93,7 +93,7 @@
     ├───honeypot-node2
     ├───honeypot-node3
     │   └───src
-    ├───mongo-data
+    ├───mosquitto
     ├───tests
     │   └───utils
     └───utils

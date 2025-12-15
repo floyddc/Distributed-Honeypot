@@ -1,12 +1,12 @@
 #!/bin/bash
 echo "Installing dependencies for all subprojects..."
 
-if [ ! -f "prova/.env" ]; then
-    echo "Creating .env file in prova/..."
+if [ ! -f "src/.env" ]; then
+    echo "Creating .env file in src/..."
     sleep 2
-    echo "# OPTIONAL: Add your GROQ_API_KEY for AI-powered attack analysis" > prova/.env
-    echo "# If not provided, the system will use fallback regex" >> prova/.env
-    echo "# GROQ_API_KEY=your_api_key_here" >> prova/.env
+    echo "# OPTIONAL: Add your GROQ_API_KEY for AI-powered attack analysis" > src/.env
+    echo "# If not provided, the system will use fallback regex" >> src/.env
+    echo "# GROQ_API_KEY=your_api_key_here" >> src/.env
     echo ".env file created!"
     sleep 3
 else

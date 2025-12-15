@@ -10,3 +10,5 @@ mongo-data
 *.log
 .env.local
 .env.*.local
+mosquitto/data
+mosquitto/log
