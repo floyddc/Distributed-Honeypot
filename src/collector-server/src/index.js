@@ -87,8 +87,6 @@ app.get('/', (req, res) => {
     res.send('Distributed Honeypot Collector Server is running...');
 });
 
-const honeypotSockets = new Map();
-
 setInterval(async () => {
     const timeout = 15000;
     const threshold = new Date(Date.now() - timeout);
@@ -258,31 +256,6 @@ io.on('connection', async (socket) => {
 
     socket.on('disconnect', async () => {
         console.log('User disconnected:', socket.id);
-
-        for (const [honeypotId, socketId] of honeypotSockets.entries()) {
-            if (socketId === socket.id) {
-                console.log(`Honeypot ${honeypotId} disconnected`);
-
-                try {
-                    await Honeypot.findOneAndUpdate(
-                        { honeypotId },
-                        { status: 'offline' },
-                        { upsert: true }
-                    );
-
-                    io.emit('honeypot_status_change', {
-                        honeypotId,
-                        status: 'offline',
-                        timestamp: new Date().toISOString()
-                    });
-
-                    honeypotSockets.delete(honeypotId);
-                } catch (error) {
-                    console.error(`Error marking honeypot ${honeypotId} offline`);
-                }
-                break;
-            }
-        }
     });
 });
 

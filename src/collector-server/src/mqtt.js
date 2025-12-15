@@ -7,10 +7,9 @@ module.exports = (io) => {
   });
 
   client.on('connect', async () => {
-    client.subscribe('honeypot/+/#', { qos: 1 });
-    console.log('[MQTT] Subscribed honeypot/+/#');
+    client.subscribe('honeypot/+/heartbeat', { qos: 1 });
+    console.log('[MQTT] Subscribed honeypot/+/heartbeat');
 
-    // Publish collector status (online/offline)
     try {
       const honeypots = await Honeypot.find().select('honeypotId');
       const msg = { collectorStatus: 'online', timestamp: new Date().toISOString() };
@@ -34,36 +33,38 @@ module.exports = (io) => {
     const honeypotId = parts[1];
     const kind = parts[2];
 
-    if (!honeypotId || !kind) return;
+    if (!honeypotId || kind !== 'heartbeat') return;
 
     payload.honeypotId ||= honeypotId;
-    console.log(`[MQTT] Received ${kind} from ${honeypotId}`, payload);
+    console.log(`[MQTT] Received heartbeat from ${honeypotId}`, payload);
 
-    // Manage only status/heartbeat messages
-    if (kind === 'status' || kind === 'heartbeat') {
-      try {
-        await Honeypot.findOneAndUpdate(
-          { honeypotId },
-          {
-            honeypotId,
-            status: payload.status || 'online',
-            port: payload.port,
-            lastSeen: new Date()
-          },
-          { upsert: true }
-        );
+    try {
+      const existing = await Honeypot.findOne({ honeypotId });
+      const newStatus = payload.status || 'online';
 
+      await Honeypot.findOneAndUpdate(
+        { honeypotId },
+        {
+          honeypotId,
+          status: newStatus,
+          port: payload.port,
+          lastSeen: new Date()
+        },
+        { upsert: true }
+      );
+
+      if (!existing || existing.status !== newStatus) {
         io.emit('honeypot_status_change', {
           honeypotId,
-          status: payload.status || 'online',
+          status: newStatus,
           port: payload.port,
           timestamp: new Date().toISOString()
         });
-
-        console.log(`[MQTT] Updated honeypot ${honeypotId} status via MQTT`);
-      } catch (err) {
-        console.error('[MQTT] Error updating honeypot status', err);
       }
+
+      console.log(`[MQTT] Updated honeypot ${honeypotId} status via MQTT`);
+    } catch (err) {
+      console.error('[MQTT] Error updating honeypot status', err);
     }
   });
 

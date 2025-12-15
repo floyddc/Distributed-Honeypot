@@ -59,7 +59,6 @@ function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
     };
     client.on('message', mqttHandler);
 
-    const statusMsg = { honeypotId: hp.id, status: 'online', port: hp.port, timestamp: new Date().toISOString() };
     const hbMsg = { honeypotId: hp.id, port: hp.port, status: 'online', timestamp: new Date().toISOString() };
 
     function publishAsync(client, topic, payload, opts) {
@@ -68,15 +67,9 @@ function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
       });
     }
 
-    const publishResults = await Promise.all([
-      publishAsync(client, `honeypot/${hp.id}/status`, JSON.stringify(statusMsg), { qos: 1, retain: true }),
-      publishAsync(client, `honeypot/${hp.id}/heartbeat`, JSON.stringify(hbMsg), { qos: 1, retain: false })
-    ]);
-
-    publishResults.forEach((err) => {
-      if (err) console.error('Publish error', err);
-    });
-    console.log('Published status and heartbeat for', hp.id);
+    const err = await publishAsync(client, `honeypot/${hp.id}/heartbeat`, JSON.stringify(hbMsg), { qos: 1, retain: true });
+    if (err) console.error('Publish error', err);
+    console.log('Published heartbeat for', hp.id);
 
     const deadline = Date.now() + 6000;
     let apiOk = false;

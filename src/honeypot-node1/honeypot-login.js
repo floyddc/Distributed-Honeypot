@@ -33,14 +33,6 @@ mqttClient.on('connect', () => {
     if (err) console.error('[MQTT] subscribe error.');
   });
 
-  const statusMsg = {
-    honeypotId: HONEYPOT_ID,
-    status: 'online',
-    port: PORT,
-    timestamp: new Date().toISOString()
-  };
-  mqttClient.publish(`honeypot/${HONEYPOT_ID}/status`, JSON.stringify(statusMsg), { qos: 1, retain: true });
-
   if (!heartbeatInterval) {
     heartbeatInterval = setInterval(() => {
       const hb = {
@@ -49,7 +41,7 @@ mqttClient.on('connect', () => {
         timestamp: new Date().toISOString(),
         status: 'online'
       };
-      mqttClient.publish(`honeypot/${HONEYPOT_ID}/heartbeat`, JSON.stringify(hb), { qos: 1, retain: false });
+      mqttClient.publish(`honeypot/${HONEYPOT_ID}/heartbeat`, JSON.stringify(hb), { qos: 1, retain: true });
     }, 5000); // 5s
   }
 });
