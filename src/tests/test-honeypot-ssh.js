@@ -1,11 +1,46 @@
 const { Client } = require('ssh2');
 const { io } = require('socket.io-client');
+const mqtt = require('mqtt');
 const { TestRunner, assert, assertEquals } = require('./utils/test-helpers');
 const chalk = require('chalk');
 const runner = new TestRunner('SSH Honeypot Tests');
 
 let collectorSocket;
 let capturedData = [];
+
+async function publishCollectorOnline() {
+    const payload = JSON.stringify({ collectorStatus: 'online' });
+    const targets = ['mqtt://mosquitto:1883', 'mqtt://localhost:1883'];
+    for (const url of targets) {
+        try {
+            await new Promise((resolve, reject) => {
+                const client = mqtt.connect(url, { connectTimeout: 2000, reconnectPeriod: 0 });
+                const t = setTimeout(() => {
+                    client.end(true);
+                    reject(new Error('connect timeout'));
+                }, 2000);
+                client.on('connect', () => {
+                    clearTimeout(t);
+                    client.publish(`honeypot/node2/collector_status`, payload, { qos: 1 }, () => {
+                        client.end();
+                        resolve();
+                    });
+                });
+                client.on('error', (err) => {
+                    clearTimeout(t);
+                    client.end(true);
+                    reject(err);
+                });
+            });
+            console.log(`   Published collector_status to ${url}`);
+            return true;
+        } catch (e) {
+            console.log(`   MQTT publish to ${url} failed: ${e.message}`);
+        }
+    }
+    console.log('   Could not publish collector_status to any MQTT broker');
+    return false;
+}
 
 runner.test('Connect to Collector Server', async () => {
     return new Promise((resolve, reject) => {
@@ -75,6 +110,8 @@ runner.test('Single SSH authentication attempt', async () => {
             resolve();
         }, 5000);
     });
+
+    await publishCollectorOnline();
 
     console.log('   Waiting for SSH attack to be captured...');
 
