@@ -10,11 +10,6 @@ module.exports = (io) => {
     client.subscribe('honeypot/+/#', { qos: 1 });
     console.log('[MQTT] Subscribed honeypot/+/#');
 
-    // Requets nodes to flush buffer
-    const flushBufferMessage = { action: 'flush_buffer' };
-    client.publish('honeypot/sync', JSON.stringify(flushBufferMessage), { qos: 1, retain: true });
-    console.log('[MQTT] Sent flush_buffer command:', flushBufferMessage);
-
     // Publish collector status (online/offline)
     try {
       const honeypots = await Honeypot.find().select('honeypotId');
