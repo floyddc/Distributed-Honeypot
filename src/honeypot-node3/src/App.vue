@@ -79,6 +79,10 @@ export default {
 </script>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
 .uploader-container {
   max-width: 400px;
   margin: 50px auto;
@@ -96,20 +100,26 @@ label {
   margin-bottom: 5px;
 }
 
-input {
+input,
+button {
   width: 100%;
   padding: 8px;
-  border: 1px solid grey;
   border-radius: 3px;
+  border: 1px solid grey;
+  font: inherit;
+  display: block;
+  background: transparent;
+}
+
+input[type="file"] {
+  padding: 8px;
 }
 
 button {
-  width: 100%;
   padding: 10px;
   background-color: blue;
   color: white;
   border: none;
-  border-radius: 3px;
   cursor: pointer;
 }
 

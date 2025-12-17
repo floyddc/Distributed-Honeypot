@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Honeypot = require('../models/Honeypot');
+const Report = require('../models/Report');
 const Docker = require('dockerode');
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 
@@ -85,6 +86,28 @@ const clearAttacks = async (req, res) => {
         });
     } catch (error) {
         console.error('Error clearing attacks:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+const clearReports = async (req, res) => {
+    try {
+        const result = await Report.deleteMany({});
+        console.log(`Cleared ${result.deletedCount} reports from database`);
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('reports_cleared', {
+                message: 'All reports have been cleared',
+                deletedCount: result.deletedCount,
+                timestamp: new Date().toISOString()
+            });
+        }
+        res.json({
+        message: 'All reports cleared successfully',
+        deletedCount: result.deletedCount
+        });
+    } catch (error) {
+        console.error('Error clearing reports:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -230,34 +253,54 @@ const reportFaultyHoneypot = async (req, res) => {
             return res.status(401).json({ message: 'User not authenticated' });
         }
 
-        const { honeypotId, port, message } = req.body;
-        
-        if (!honeypotId || !port) {
-            return res.status(400).json({ message: 'honeypotId and port are required' });
-        }
-        
-        const reportedBy = req.user.username;
+    const { honeypotId, port, message } = req.body;
 
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('honeypot_fault_report', {
-                honeypotId,
-                port,
-                reportedBy,
-                timestamp: new Date().toISOString(),
-                message: message || `Honeypot ${honeypotId}:${port} reported as faulty`
-            });
-        }
+    if (!honeypotId || !port) {
+        return res.status(400).json({ message: 'honeypotId and port are required' });
+    }
 
-        console.log(`Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`);
-        res.json({ 
-            message: 'Report sent to admins',
+    const reportedBy = req.user.username;
+
+    const report = await Report.create({
+        honeypotId,
+        port: Number(port),
+        reporterId: req.user._id || null,
+        reporterUsername: reportedBy,
+        message: message || ''
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('honeypot_fault_report', {
             honeypotId,
-            port,
-            reportedBy
+            port: Number(port),
+            reportedBy,
+            timestamp: new Date().toISOString(),
+            message: message || `Honeypot ${honeypotId}:${port} reported as faulty`,
+            reportId: report._id.toString()
         });
+    }
+
+    console.log(`Honeypot ${honeypotId}:${port} reported as faulty by ${reportedBy}`);
+    res.json({
+        message: 'Report sent to admins',
+        honeypotId,
+        port: Number(port),
+        reportedBy,
+        reportId: report._id.toString()
+    });
     } catch (error) {
         console.error('Error reporting faulty honeypot:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+const getReports = async (req, res) => {
+    try {
+        const reports = await Report.find({}).sort({ createdAt: -1 }).limit(200);
+        res.json(reports);
+    } catch (error) {
+        console.error('Error fetching reports:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -269,6 +312,8 @@ module.exports = {
     controlHoneypot,
     getAttacks,
     clearAttacks,
+    clearReports,
     deleteUser,
-    reportFaultyHoneypot
+    reportFaultyHoneypot,
+    getReports
 };

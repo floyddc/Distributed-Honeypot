@@ -10,6 +10,7 @@ export const useSocketStore = defineStore('socket', () => {
   const honeypots = ref([])
   const liveSessions = ref({})
   const terminalSessions = ref({})
+  const unreadReports = ref(0)
   const reportToastIds = new Set() 
   
   // fallback
@@ -290,6 +291,7 @@ export const useSocketStore = defineStore('socket', () => {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
       
       if (currentUser.role === 'admin') {
+        try { unreadReports.value = (unreadReports.value || 0) + 1 } catch (e) {}
         const reportId = `${data.honeypotId}-${data.port}-${data.reportedBy}-${Date.now()}`
         
         if (reportToastIds.has(reportId)) {
@@ -326,6 +328,10 @@ export const useSocketStore = defineStore('socket', () => {
     reportToastIds.clear() 
   }
 
+  const markReportsRead = () => {
+    try { unreadReports.value = 0 } catch (e) {}
+  }
+
   const clearAllSessions = () => {
     liveSessions.value = {}
     terminalSessions.value = {}
@@ -340,8 +346,10 @@ export const useSocketStore = defineStore('socket', () => {
     honeypots,
     liveSessions,
     terminalSessions,
+    unreadReports,
     connect,
     disconnect,
     clearAllSessions
+    ,markReportsRead
   }
 })

@@ -84,6 +84,16 @@ onMounted(() => {
             </svg>
             Admin Panel
           </router-link>
+
+          <router-link v-if="authStore.user?.role === 'admin'" to="/reports" class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-[rgba(95,191,187,0.2)] hover:text-[#5fbfbb]">
+            <svg class="mr-4 h-6 w-6 text-[#5fbfbb] group-hover:text-[#5fbfbb]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6M9 16h6M9 8h6M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-3l-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span class="flex items-center gap-2">
+              <span>Reports</span>
+              <span v-if="socketStore.unreadReports > 0" class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">{{ socketStore.unreadReports }}</span>
+            </span>
+          </router-link>
         </nav>
 
       <div class="p-4 border-t border-[#5fbfbb] bg-[rgba(22,21,21,0.95)] mt-auto">
