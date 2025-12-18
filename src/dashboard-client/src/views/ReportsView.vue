@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import ActionPopup from '../components/ActionPopup.vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
@@ -28,8 +29,21 @@ const fetchReports = async () => {
   }
 }
 
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+let confirmResolve = null
+
+const askConfirm = (msg) => new Promise((resolve) => {
+  confirmMessage.value = msg
+  showConfirm.value = true
+  confirmResolve = resolve
+})
+
+const onConfirm = () => { if (confirmResolve) confirmResolve(true); confirmResolve = null }
+const onCancel = () => { if (confirmResolve) confirmResolve(false); confirmResolve = null }
+
 const clearAllReports = async () => {
-  if (!confirm('Clear all reports? This cannot be undone.')) return
+  if (!(await askConfirm('Clear all reports? This cannot be undone.'))) return
   clearing.value = true
   try {
     const res = await fetch('http://localhost:3000/api/admin/reports', {
@@ -112,6 +126,7 @@ onUnmounted(() => {
         <li v-for="r in reports" :key="r._id" class="p-3 border rounded bg-[rgba(22,21,21,0.95)] border-[rgba(95,191,187,0.15)]">
           <div class="flex justify-between items-center">
             <div>
+            <ActionPopup v-model="showConfirm" :message="confirmMessage" :confirm="true" @confirm="onConfirm" @cancel="onCancel" />
               <div class="text-sm text-gray-300 font-mono">{{ r.honeypotId }}:{{ r.port }}</div>
               <div class="text-sm text-gray-400">By: {{ r.reporterUsername || 'unknown' }} — {{ new Date(r.createdAt).toLocaleString() }}</div>
             </div>

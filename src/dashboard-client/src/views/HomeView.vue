@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import ActionPopup from '../components/ActionPopup.vue'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 import AttackTable from '../components/AttackTable.vue'
 import DashboardCharts from '../components/DashboardCharts.vue'
@@ -25,8 +26,21 @@ const isAdmin = computed(() => {
   return authStore.user?.role === 'admin'
 })
 
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+let confirmResolve = null
+
+const askConfirm = (msg) => new Promise((resolve) => {
+  confirmMessage.value = msg
+  showConfirm.value = true
+  confirmResolve = resolve
+})
+
+const onConfirm = () => { if (confirmResolve) confirmResolve(true); confirmResolve = null }
+const onCancel = () => { if (confirmResolve) confirmResolve(false); confirmResolve = null }
+
 const clearAttacks = async () => {
-  if (!confirm('Are you sure you want to delete ALL attacks?')) {
+  if (!(await askConfirm('Are you sure you want to delete ALL attacks?'))) {
     return
   }
 
@@ -139,5 +153,6 @@ const clearAttacks = async () => {
     <div class="grid grid-cols-1 gap-4 mt-6">
       <AttackTable :attacks="socketStore.attacks" />
     </div>
+    <ActionPopup v-model="showConfirm" :message="confirmMessage" :confirm="true" @confirm="onConfirm" @cancel="onCancel" />
   </DashboardLayout>
 </template>

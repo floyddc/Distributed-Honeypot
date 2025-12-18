@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onActivated } from 'vue'
+import ActionPopup from '../components/ActionPopup.vue'
 import { useAuthStore } from '../stores/auth'
 import DashboardLayout from '../layouts/DashboardLayout.vue'
 
@@ -88,8 +89,21 @@ const controlAllHoneypots = async (action) => {
   await controlHoneypot('all', action)
 }
 
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+let confirmResolve = null
+
+const askConfirm = (msg) => new Promise((resolve) => {
+  confirmMessage.value = msg
+  showConfirm.value = true
+  confirmResolve = resolve
+})
+
+const onConfirm = () => { if (confirmResolve) confirmResolve(true); confirmResolve = null }
+const onCancel = () => { if (confirmResolve) confirmResolve(false); confirmResolve = null }
+
 const deleteUser = async (userId) => {
-  if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  if (!(await askConfirm('Are you sure you want to delete this user? This action cannot be undone.'))) {
     return
   }
   
@@ -256,4 +270,5 @@ onActivated(() => {
       </div>
     </div>
   </DashboardLayout>
+  <ActionPopup v-model="showConfirm" :message="confirmMessage" :confirm="true" @confirm="onConfirm" @cancel="onCancel" />
 </template>

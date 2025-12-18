@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { useSocketStore } from '../stores/socket'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
+import ActionPopup from '../components/ActionPopup.vue'
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore()
@@ -22,8 +23,30 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+let confirmResolve = null
+
+const askConfirm = (msg) => {
+  return new Promise((resolve) => {
+    confirmMessage.value = msg
+    showConfirm.value = true
+    confirmResolve = resolve
+  })
+}
+
+const onConfirm = () => {
+  if (confirmResolve) confirmResolve(true)
+  confirmResolve = null
+}
+
+const onCancel = () => {
+  if (confirmResolve) confirmResolve(false)
+  confirmResolve = null
+}
+
 const handleDeleteAccount = async () => {
-  const confirmed = confirm('Are you sure?')
+  const confirmed = await askConfirm('Are you sure?')
   if (!confirmed) return
 
   try {
@@ -97,14 +120,19 @@ onMounted(() => {
         </nav>
 
       <div class="p-4 border-t border-[#5fbfbb] bg-[rgba(22,21,21,0.95)] mt-auto">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-full bg-[#5fbfbb] flex items-center justify-center text-xs font-bold text-[rgba(22,21,21,0.8)]">
-            {{ authStore.user?.username.charAt(0).toUpperCase() }}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-[#5fbfbb] flex items-center justify-center text-xs font-bold text-[rgba(22,21,21,0.8)]">
+              {{ authStore.user?.username.charAt(0).toUpperCase() }}
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-gray-200">{{ authStore.user?.username }}</p>
+              <p class="text-xs text-gray-400">{{ authStore.user?.role || 'User' }}</p>
+            </div>
           </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-gray-200">{{ authStore.user?.username }}</p>
-            <p class="text-xs text-gray-400">{{ authStore.user?.role || 'User' }}</p>
-          </div>
+          <button @click="handleDeleteAccount" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
+            Delete Account
+          </button>
         </div>
       </div>
     </aside>
@@ -128,10 +156,6 @@ onMounted(() => {
             </span>
           </div>
 
-          <button @click="handleDeleteAccount" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
-            Delete Account
-          </button>
-
           <button @click="handleLogout" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
             Logout
           </button>
@@ -143,5 +167,6 @@ onMounted(() => {
         <slot></slot>
       </main>
     </div>
+    <ActionPopup v-model="showConfirm" :message="confirmMessage" :confirm="true" @confirm="onConfirm" @cancel="onCancel" />
   </div>
 </template>
