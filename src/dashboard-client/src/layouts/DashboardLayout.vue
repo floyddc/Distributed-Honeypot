@@ -137,6 +137,12 @@ onMounted(() => {
       </div>
     </aside>
 
+    <!-- Mobile Overlay -->
+    <div v-if="sidebarOpen" 
+         @click="sidebarOpen = false"
+         class="fixed inset-0 z-40  bg-opacity-50 md:hidden transition-opacity">
+    </div>
+
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Header -->

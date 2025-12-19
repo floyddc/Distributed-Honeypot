@@ -107,21 +107,63 @@ const doughnutOptions = {
   },
   cutout: '70%'
 }
+const ipData = computed(() => {
+  const counts = {}
+  props.attacks.forEach(a => {
+    const ip = a.sourceIp || 'Unknown'
+    counts[ip] = (counts[ip] || 0) + 1
+  })
+  
+  //Sort by count descending and take top 5
+  const sortedIps = Object.keys(counts)
+    .sort((a, b) => counts[b] - counts[a])
+    .slice(0, 5)
+
+  //Function to generate deterministic color from IP string
+  const stringToColor = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+  }
+  
+  const ipColors = sortedIps.map(ip => stringToColor(ip));
+
+  return {
+    labels: sortedIps,
+    datasets: [{
+      label: 'Attacks by IP',
+      backgroundColor: ipColors,
+      borderColor: ipColors,
+      borderWidth: 1,
+      data: sortedIps.map(ip => counts[ip])
+    }]
+  }
+})
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
     <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
-      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Threat Severity Distribution</h3>
+      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Threat Severity</h3>
       <div class="h-64">
         <Doughnut :data="severityData" :options="doughnutOptions" />
       </div>
     </div>
 
     <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
-      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Traffic Analysis by Port</h3>
+      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Traffic by Port</h3>
       <div class="h-64">
         <Bar :data="portData" :options="chartOptions" />
+      </div>
+    </div>
+
+    <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb] lg:col-span-1 md:col-span-2">
+      <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Top Attackers (IP)</h3>
+      <div class="h-64">
+        <Bar :data="ipData" :options="chartOptions" />
       </div>
     </div>
   </div>
