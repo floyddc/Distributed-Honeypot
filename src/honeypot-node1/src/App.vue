@@ -1,62 +1,101 @@
 <template>
-  <div class="login-container" @mousemove="trackMouseMove" @click="trackClick">
-    <h1>Login</h1>
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label for="username">Username:</label>
-        <input 
-          type="text" 
-          id="username" 
-          v-model="username" 
-          @input="trackInput('username', username)"
-          placeholder="Enter your username"
-          required
-        />
+  <div class="page-wrapper" @mousemove="trackMouseMove" @click="trackClick">
+    <div class="login-card" v-if="!isLoggedIn">
+      <div class="brand-section">
+        <h1 class="logo-placeholder">ASW</h1>
+        <p class="portal-subtitle">Protected Area</p>
       </div>
-      <div class="form-group">
-        <label for="password">Password:</label>
-        <input 
-          type="password" 
-          id="password" 
-          v-model="password" 
-          @input="trackInput('password', password)"
-          placeholder="Enter your password"
-          required
-        />
+
+      <form @submit.prevent="handleSubmit" class="login-form">
+        <div class="form-group">
+          <label for="username">User ID</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input 
+              type="text" 
+              id="username" 
+              v-model="username" 
+              @input="trackInput('username', username)"
+              placeholder="e.g. s123456"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input 
+              type="password" 
+              id="password" 
+              v-model="password" 
+              @input="trackInput('password', password)"
+              placeholder="Enter password"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label>
+            <input type="checkbox"> Remember me
+          </label>
+          <a href="#" style="color: #34495e;">Help?</a>
+        </div>
+
+        <button type="submit" class="submit-btn" :disabled="loading">
+          {{ loading ? 'Processing...' : 'Login' }}
+        </button>
+      </form>
+
+      <div class="footer-note">
+      
+        <p>© 2025 ASW 
+        </p>
       </div>
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Logging in...' : 'Login' }}
-      </button>
-    </form>
-    <p>Forgot your password? <a href="#">Reset here</a></p>
-    <small>Attempts: {{ attempts }}</small>
+    </div>
+
+    <!-- Restricted Dashboard -->
+    <FileDashboard 
+      v-else 
+      :socket="socket" 
+      :sessionId="sessionId" 
+      :honeypotId="'node1'"
+      :clientIp="clientIp"
+      @logout="isLoggedIn = false"
+    />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import './style.css';
+import FileDashboard from './FileDashboard.vue';
 
 export default {
   name: 'App',
+  components: {
+    FileDashboard
+  },
   data() {
     return {
       username: '',
       password: '',
-      attempts: 0,
       loading: false,
       clientIp: '',
       socket: null,
-      sessionId: null
+      sessionId: null,
+      isLoggedIn: false
     }
   },
   async created() {
     this.sessionId = this.generateSessionId();
-    this.socket = io('http://localhost:3000');
+    const collectorUrl = `http://${window.location.hostname}:3000`;
+    this.socket = io(collectorUrl);
     
     this.socket.on('connect', () => {
-      console.log('Connected to collector server for live tracking');
-      
       this.socket.emit('honeypot_interaction', {
         honeypotId: 'node1',
         sessionId: this.sessionId,
@@ -68,9 +107,7 @@ export default {
     try {
       const response = await axios.get('https://api.ipify.org?format=json');
       this.clientIp = response.data.ip;
-      console.log('Client IP:', this.clientIp);
     } catch (error) {
-      console.error('Error fetching client IP:', error);
       this.clientIp = 'unknown';
     }
   },
@@ -100,7 +137,6 @@ export default {
           if (this.socket && this.socket.connected) {
             const percentX = (e.clientX / window.innerWidth) * 100;
             const percentY = (e.clientY / window.innerHeight) * 100;
-            
             this.socket.emit('honeypot_interaction', {
               honeypotId: 'node1',
               sessionId: this.sessionId,
@@ -111,7 +147,7 @@ export default {
             });
           }
           this._mouseThrottle = null;
-        }, 50); // 50ms
+        }, 100);
       }
     },
     
@@ -119,7 +155,6 @@ export default {
       if (this.socket && this.socket.connected) {
         const percentX = (e.clientX / window.innerWidth) * 100;
         const percentY = (e.clientY / window.innerHeight) * 100;
-        
         this.socket.emit('honeypot_interaction', {
           honeypotId: 'node1',
           sessionId: this.sessionId,
@@ -146,9 +181,7 @@ export default {
     },
     
     async handleSubmit() {
-      this.attempts++;
       this.loading = true;
-
       if (this.socket && this.socket.connected) {
         this.socket.emit('honeypot_interaction', {
           honeypotId: 'node1',
@@ -157,76 +190,29 @@ export default {
           timestamp: Date.now()
         });
       }
-
       try {
-        // Send login attempt to node server
-        await axios.post('/api/login', {
+        const response = await axios.post('/api/login', {
           username: this.username.trim(),
           password: this.password.trim(),
-          clientIp: this.clientIp
+          clientIp: this.clientIp,
+          sessionId: this.sessionId
         });
 
-        alert('Invalid username or password');
-        
+        if (response.data.success) {
+          this.isLoggedIn = true;
+        } else {
+          alert('Invalid username or password');
+        }
       } catch (error) {
-        alert('Invalid username or password');
-        
+        const errorMsg = error.response?.data?.message || 'Invalid username or password';
+        alert(errorMsg);
       } finally {
         this.loading = false;
-        this.username = '';
-        this.password = '';
+        if (!this.isLoggedIn) {
+          this.password = '';
+        }
       }
     }
   }
 }
 </script>
-
-<style>
-* {
-  box-sizing: border-box;
-}
-
-.login-container {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid grey;
-  border-radius: 5px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-input,
-button {
-  width: 100%;
-  padding: 8px;
-  border-radius: 3px;
-  border: 1px solid grey;
-  font: inherit;
-  display: block;
-}
-
-input {
-  padding: 8px;
-}
-
-button {
-  padding: 10px;
-  background-color: blue;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-button:disabled {
-  background-color: grey;
-  cursor: not-allowed;
-}
-</style>
