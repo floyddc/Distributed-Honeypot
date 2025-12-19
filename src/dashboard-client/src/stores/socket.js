@@ -11,14 +11,14 @@ export const useSocketStore = defineStore('socket', () => {
   const liveSessions = ref({})
   const terminalSessions = ref({})
   const unreadReports = ref(0)
-  const reportToastIds = new Set() 
-  
+  const reportToastIds = new Set()
+
   // fallback
   const loadSessionsFromStorage = () => {
     try {
       const savedLiveSessions = localStorage.getItem('liveSessions')
       const savedTerminalSessions = localStorage.getItem('terminalSessions')
-      
+
       return {
         live: savedLiveSessions ? JSON.parse(savedLiveSessions) : {},
         terminal: savedTerminalSessions ? JSON.parse(savedTerminalSessions) : {}
@@ -28,18 +28,18 @@ export const useSocketStore = defineStore('socket', () => {
       return { live: {}, terminal: {} }
     }
   }
-  
+
   const loadSessionsFromDB = async () => {
     try {
       const token = localStorage.getItem('token')
       const response = await fetch('http://localhost:3000/api/sessions', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       if (response.ok) {
         const sessions = await response.json()
         console.log('[SocketStore] Loaded sessions from DB:', sessions.length)
-        
+
         sessions.filter(s => s.type === 'ssh').forEach(session => {
           terminalSessions.value[session.sessionId] = {
             id: session.sessionId,
@@ -48,7 +48,7 @@ export const useSocketStore = defineStore('socket', () => {
             lastActivity: new Date(session.lastActivity).getTime()
           }
         })
-        
+
         sessions.filter(s => s.type === 'login').forEach(session => {
           liveSessions.value[session.sessionId] = {
             id: session.sessionId,
@@ -60,7 +60,7 @@ export const useSocketStore = defineStore('socket', () => {
             lastActivity: new Date(session.lastActivity).getTime()
           }
         })
-        
+
         return true
       }
       return false
@@ -69,7 +69,7 @@ export const useSocketStore = defineStore('socket', () => {
       return false
     }
   }
-  
+
   // fallback
   watch(liveSessions, (newSessions) => {
     try {
@@ -78,7 +78,7 @@ export const useSocketStore = defineStore('socket', () => {
       console.error('Failed to save liveSessions to localStorage:', error)
     }
   }, { deep: true })
-  
+
   watch(terminalSessions, (newSessions) => {
     try {
       localStorage.setItem('terminalSessions', JSON.stringify(newSessions))
@@ -104,13 +104,13 @@ export const useSocketStore = defineStore('socket', () => {
     try {
       const token = localStorage.getItem('token')
       console.log('Loading attacks with token:', token ? 'present' : 'missing')
-      
+
       const response = await fetch('http://localhost:3000/api/attacks', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      
+
       console.log('Attack response status:', response.status)
-      
+
       if (response.ok) {
         const data = await response.json()
         console.log('Loaded attacks:', data.length)
@@ -133,16 +133,16 @@ export const useSocketStore = defineStore('socket', () => {
 
     socket.value.on('connect', async () => {
       console.log('Connected to collector server')
-      
+
       const loadedFromDB = await loadSessionsFromDB()
-      
+
       if (!loadedFromDB) {
         console.log('[SocketStore] Failed to load from DB, using localStorage as fallback')
         const savedSessions = loadSessionsFromStorage()
         liveSessions.value = savedSessions.live
         terminalSessions.value = savedSessions.terminal
       }
-      
+
       loadHoneypots()
       loadAttacks()
     })
@@ -158,13 +158,13 @@ export const useSocketStore = defineStore('socket', () => {
 
     socket.value.on('attacks_cleared', (data) => {
       console.log('Attacks cleared:', data.message)
-      attacks.value = [] 
+      attacks.value = []
     })
 
     socket.value.on('user_deleted', (data) => {
       console.log('User deleted event received:', data)
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      
+
       if (currentUser._id === data.userId) {
         const toast = useToast()
         toast.error(data.message || 'Your account has been deleted by an admin', {
@@ -195,7 +195,7 @@ export const useSocketStore = defineStore('socket', () => {
 
     socket.value.on('active_sessions', (activeSessions) => {
       console.log('[SocketStore] Received active sessions:', activeSessions.length)
-      
+
       activeSessions.forEach(session => {
         if (!liveSessions.value[session.sessionId]) {
           liveSessions.value[session.sessionId] = {
@@ -214,13 +214,13 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('live_interaction', (data) => {
       console.log('[SocketStore] Received live_interaction:', data)
       const { sessionId } = data
-      
+
       if (data.type === 'session_end') {
         console.log('[SocketStore] Session ended:', sessionId)
         delete liveSessions.value[sessionId]
         return
       }
-      
+
       if (!liveSessions.value[sessionId]) {
         liveSessions.value[sessionId] = {
           id: sessionId,
@@ -232,11 +232,11 @@ export const useSocketStore = defineStore('socket', () => {
           lastActivity: Date.now()
         }
       }
-      
+
       const session = liveSessions.value[sessionId]
       session.events.push(data)
       session.lastActivity = Date.now()
-      
+
       switch (data.type) {
         case 'mousemove':
           session.mouseX = data.x
@@ -248,13 +248,16 @@ export const useSocketStore = defineStore('socket', () => {
         case 'submit':
           console.log(`User submitted form in session ${sessionId}`)
           break
+        case 'navigation':
+          session.currentView = data.view
+          break
       }
     })
 
     socket.value.on('live_session_feed', (payload) => {
       console.log('[SocketStore] Received live_session_feed:', payload)
       const sessionId = payload.sessionId || 'default'
-      
+
       if (!terminalSessions.value[sessionId]) {
         terminalSessions.value[sessionId] = {
           id: sessionId,
@@ -263,7 +266,7 @@ export const useSocketStore = defineStore('socket', () => {
           lastActivity: Date.now()
         }
       }
-      
+
       const session = terminalSessions.value[sessionId]
       session.buffer += payload.data
       session.lastActivity = Date.now()
@@ -272,7 +275,7 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('role_updated', (data) => {
       console.log('Role updated event received:', data)
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      
+
       if (currentUser._id === data.userId) {
         currentUser.role = data.newRole
         localStorage.setItem('user', JSON.stringify(currentUser))
@@ -289,18 +292,18 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('honeypot_fault_report', (data) => {
       console.log('Honeypot fault report received:', data)
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      
+
       if (currentUser.role === 'admin') {
-        try { unreadReports.value = (unreadReports.value || 0) + 1 } catch (e) {}
+        try { unreadReports.value = (unreadReports.value || 0) + 1 } catch (e) { }
         const reportId = `${data.honeypotId}-${data.port}-${data.reportedBy}-${Date.now()}`
-        
+
         if (reportToastIds.has(reportId)) {
           return
         }
         reportToastIds.add(reportId)
-        
+
         setTimeout(() => reportToastIds.delete(reportId), 1000)
-        
+
         const toast = useToast()
         toast.warning({
           component: ReportToastContent,
@@ -308,7 +311,7 @@ export const useSocketStore = defineStore('socket', () => {
             report: data
           }
         }, {
-          timeout: 0, 
+          timeout: 0,
           closeButton: true
         })
       }
@@ -325,11 +328,11 @@ export const useSocketStore = defineStore('socket', () => {
       socket.value.disconnect()
       socket.value = null
     }
-    reportToastIds.clear() 
+    reportToastIds.clear()
   }
 
   const markReportsRead = () => {
-    try { unreadReports.value = 0 } catch (e) {}
+    try { unreadReports.value = 0 } catch (e) { }
   }
 
   const clearAllSessions = () => {
@@ -350,6 +353,6 @@ export const useSocketStore = defineStore('socket', () => {
     connect,
     disconnect,
     clearAllSessions
-    ,markReportsRead
+    , markReportsRead
   }
 })

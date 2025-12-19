@@ -37,7 +37,8 @@
   - `docker rm <ID>` 
 
 ## How to connect to MongoDB
-- `mongosh mongodb://localhost:27017/distributed-honeypot`
+- `docker exec -it mongo1 mongosh`
+- `use distributed-honeypot` to select the database.
 - `show collections` to list tables.
 - `db.users.find()` to list registered users.
 - `db.honeypots.find()` to list registered honeypots.
@@ -55,12 +56,21 @@
 
 ### How Honeypot-node1 works
 - Visit http://localhost:3001 to visit the fake login page.
-- Interact with it and check the dashboard.
+- **Normal Attack (Failed)**: Try any username/password. It will be logged as a low-severity attack.
+- **SQL Injection Bypass (Success)**: 
+  - Username: `' OR '1'='1 --` (or similar SQLi bypass patterns).
+  - Password: any.
+  - *Result*: You will successfully log in and access the **Restricted Access Area**.
+- **Admin Credentials (Success)**: 
+  - Username: `admin`
+  - Password: `password123`
+  - *Result*: You will successfully log in to the dashboard.
+- **Data Exfiltration**: Once logged in, try to download files like `passwords.txt`. This action will be logged in the collector as a high-severity attack.
 
 ### How Honeypot-node2 works
 - Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
 - Interact with it and check the dashboard.
-- _Delete your host key after first use_: `ssh-keygen -R [localhost]:2222`
+- _Delete your host key after first use_: `ssh-keygen -R "[localhost]:2222" `
 
 ### How Honeypot-node3 works
 - Visit http://localhost:3003 to visit the fake file uploader.
