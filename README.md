@@ -56,16 +56,9 @@
 
 ### How Honeypot-node1 works
 - Visit http://localhost:3001 to visit the fake login page.
-- **Normal Attack (Failed)**: Try any username/password. It will be logged as a low-severity attack.
-- **SQL Injection Bypass (Success)**: 
-  - Username: `' OR '1'='1 --` (or similar SQLi bypass patterns).
-  - Password: any.
-  - *Result*: You will successfully log in and access the **Restricted Access Area**.
-- **Admin Credentials (Success)**: 
-  - Username: `admin`
-  - Password: `password123`
-  - *Result*: You will successfully log in to the dashboard.
-- **Data Exfiltration**: Once logged in, try to download files like `passwords.txt`. This action will be logged in the collector as a high-severity attack.
+- Interact with it and check the dashboard.
+- Correct credentials to log in are: `admin / password123`.
+- Try to download `passwords.txt` file and check it and the dashboard.
 
 ### How Honeypot-node2 works
 - Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
@@ -80,7 +73,6 @@
 ```
 ├───.github
 │   └───workflows
-├───docs
 └───src
     ├───collector-server
     │   ├───scripts

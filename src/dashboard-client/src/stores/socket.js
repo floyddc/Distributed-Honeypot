@@ -29,6 +29,15 @@ export const useSocketStore = defineStore('socket', () => {
     }
   }
 
+  try {
+    const saved = loadSessionsFromStorage()
+    liveSessions.value = saved.live || {}
+    terminalSessions.value = saved.terminal || {}
+    console.log('[SocketStore] Initialized sessions from localStorage:', Object.keys(liveSessions.value).length)
+  } catch (e) {
+    console.error('[SocketStore] Failed to initialize sessions from localStorage:', e)
+  }
+
   const loadSessionsFromDB = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -38,28 +47,37 @@ export const useSocketStore = defineStore('socket', () => {
 
       if (response.ok) {
         const sessions = await response.json()
+        const saved = loadSessionsFromStorage()
         console.log('[SocketStore] Loaded sessions from DB:', sessions.length)
 
+        const mergedTerminal = {}
+        const mergedLive = {}
+
         sessions.filter(s => s.type === 'ssh').forEach(session => {
-          terminalSessions.value[session.sessionId] = {
+          mergedTerminal[session.sessionId] = {
             id: session.sessionId,
             honeypotId: session.honeypotId,
-            buffer: session.buffer || '',
+            buffer: (session.buffer != null && session.buffer.length) ? session.buffer : (saved.terminal && saved.terminal[session.sessionId] && saved.terminal[session.sessionId].buffer) || '',
             lastActivity: new Date(session.lastActivity).getTime()
           }
         })
 
         sessions.filter(s => s.type === 'login').forEach(session => {
-          liveSessions.value[session.sessionId] = {
+          const savedEntry = (saved.live && saved.live[session.sessionId]) || {}
+          mergedLive[session.sessionId] = {
             id: session.sessionId,
             honeypotId: session.honeypotId,
-            events: session.events || [],
-            mouseX: session.mouseX || 0,
-            mouseY: session.mouseY || 0,
-            fields: session.fields || { username: '', password: '' },
+            events: session.events || savedEntry.events || [],
+            mouseX: session.mouseX || savedEntry.mouseX || 0,
+            mouseY: session.mouseY || savedEntry.mouseY || 0,
+            fields: session.fields || savedEntry.fields || { username: '', password: '' },
+            loggedIn: (savedEntry && savedEntry.loggedIn) || session.loggedIn || false,
             lastActivity: new Date(session.lastActivity).getTime()
           }
         })
+
+        terminalSessions.value = mergedTerminal
+        liveSessions.value = mergedLive
 
         return true
       }
@@ -205,6 +223,7 @@ export const useSocketStore = defineStore('socket', () => {
             mouseX: 0,
             mouseY: 0,
             fields: { username: '', password: '' },
+            loggedIn: false,
             lastActivity: session.lastActivity
           }
         }
@@ -217,7 +236,8 @@ export const useSocketStore = defineStore('socket', () => {
 
       if (data.type === 'session_end') {
         console.log('[SocketStore] Session ended:', sessionId)
-        delete liveSessions.value[sessionId]
+        try { delete liveSessions.value[sessionId] } catch (e) {}
+        try { delete terminalSessions.value[sessionId] } catch (e) {}
         return
       }
 
@@ -229,6 +249,7 @@ export const useSocketStore = defineStore('socket', () => {
           mouseX: 0,
           mouseY: 0,
           fields: { username: '', password: '' },
+          loggedIn: false,
           lastActivity: Date.now()
         }
       }
@@ -250,9 +271,14 @@ export const useSocketStore = defineStore('socket', () => {
           break
         case 'navigation':
           session.currentView = data.view
+          if (data.view === 'dashboard') {
+            session.loggedIn = true
+          }
           break
       }
     })
+
+    try { cleanupSessions() } catch(e) { }
 
     socket.value.on('live_session_feed', (payload) => {
       console.log('[SocketStore] Received live_session_feed:', payload)
@@ -322,6 +348,33 @@ export const useSocketStore = defineStore('socket', () => {
     })
   }
 
+  const INACTIVITY_LIMIT_MS = 120 * 1000 // 120s
+  let cleanupInterval = null
+
+  const cleanupSessions = () => {
+    try {
+      const now = Date.now()
+      for (const [id, s] of Object.entries(liveSessions.value)) {
+        const last = Number(s.lastActivity) || 0
+        if (last > 0 && now - last > INACTIVITY_LIMIT_MS) {
+          console.log(`[SocketStore] Removing inactive live session ${id}`)
+          delete liveSessions.value[id]
+        }
+      }
+      for (const [id, s] of Object.entries(terminalSessions.value)) {
+        const last = Number(s.lastActivity) || 0
+        if (last > 0 && now - last > INACTIVITY_LIMIT_MS) {
+          console.log(`[SocketStore] Removing inactive terminal session ${id}`)
+          delete terminalSessions.value[id]
+        }
+      }
+    } catch (e) {
+      console.error('[SocketStore] cleanupSessions error', e)
+    }
+  }
+
+  cleanupInterval = setInterval(cleanupSessions, 30 * 1000)
+
   const disconnect = () => {
     if (socket.value) {
       socket.value.removeAllListeners()
@@ -329,6 +382,7 @@ export const useSocketStore = defineStore('socket', () => {
       socket.value = null
     }
     reportToastIds.clear()
+    try { if (cleanupInterval) { clearInterval(cleanupInterval); cleanupInterval = null } } catch(e){}
   }
 
   const markReportsRead = () => {
@@ -352,7 +406,7 @@ export const useSocketStore = defineStore('socket', () => {
     unreadReports,
     connect,
     disconnect,
-    clearAllSessions
-    , markReportsRead
+    clearAllSessions,
+    markReportsRead
   }
 })

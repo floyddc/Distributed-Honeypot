@@ -68,8 +68,6 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = null
         localStorage.removeItem('user')
         localStorage.removeItem('token')
-        // We can't use router here directly in setup store easily without providing it, 
-        // but usually logout is called from a component which handles redirect
         window.location.href = '/login'
     }
 

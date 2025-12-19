@@ -98,6 +98,29 @@ watch(sessions, async (newSessions, oldSessions) => {
             await createSession(sessionId)
         }
     }
+
+    for (const instId of Object.keys(terminalInstances.value)) {
+        if (!newSessions[instId]) {
+            try {
+                const instance = terminalInstances.value[instId]
+                if (instance && instance.term) {
+                    instance.term.dispose()
+                }
+            } catch (e) { console.warn('[LiveTerminal] Failed to dispose instance', instId, e) }
+            delete terminalInstances.value[instId]
+            delete terminalRefs.value[instId]
+        }
+    }
+
+    if (!activeSessionId.value || !newSessions[activeSessionId.value]) {
+        let latestId = null
+        let latestTs = 0
+        for (const [id, s] of Object.entries(newSessions)) {
+            const ts = Number(s && s.lastActivity) || 0
+            if (ts > latestTs) { latestTs = ts; latestId = id }
+        }
+        if (latestId) activeSessionId.value = latestId
+    }
 }, { deep: true })
 
 watch(sessions, (newSessions) => {
@@ -125,6 +148,17 @@ onMounted(() => {
     nextTick(() => {
         for (const sessionId of Object.keys(sessions.value)) {
             createSession(sessionId)
+        }
+
+        const entries = Object.entries(sessions.value || {})
+        if (entries.length > 0 && !activeSessionId.value) {
+            let latestId = null
+            let latestTs = 0
+            entries.forEach(([id, s]) => {
+                const ts = Number(s && s.lastActivity) || 0
+                if (ts > latestTs) { latestTs = ts; latestId = id }
+            })
+            activeSessionId.value = latestId || entries[0][0]
         }
     })
 

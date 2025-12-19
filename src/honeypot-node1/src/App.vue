@@ -10,13 +10,12 @@
         <div class="form-group">
           <label for="username">User ID</label>
           <div class="input-wrapper">
-            <span class="input-icon">👤</span>
             <input 
               type="text" 
               id="username" 
               v-model="username" 
               @input="trackInput('username', username)"
-              placeholder="e.g. s123456"
+              placeholder="Enter username"
               required
             />
           </div>
@@ -25,7 +24,6 @@
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrapper">
-            <span class="input-icon">🔒</span>
             <input 
               type="password" 
               id="password" 
@@ -56,7 +54,6 @@
       </div>
     </div>
 
-    <!-- Restricted Dashboard -->
     <FileDashboard 
       v-else 
       :socket="socket" 
@@ -93,7 +90,6 @@ export default {
     }
   },
   async created() {
-    // Check for existing session in storage
     const storedSession = sessionStorage.getItem('honeypot_session_id');
     if (storedSession) {
       this.sessionId = storedSession;

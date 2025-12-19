@@ -86,12 +86,12 @@ const chartOptions = {
   },
   scales: {
     y: {
-      ticks: { color: '#5fbfbb' },
-      grid: { color: 'rgba(95,191,187,0.2)' }
+      ticks: { color: '#5fbfbb', font: { size: 10 } },
+      grid: { color: 'rgba(95,191,187,0.12)' }
     },
     x: {
-      ticks: { color: '#5fbfbb' },
-      grid: { color: 'rgba(95,191,187,0.2)' }
+      ticks: { color: '#5fbfbb', font: { size: 10 } },
+      grid: { color: 'rgba(95,191,187,0.12)' }
     }
   }
 }
@@ -101,11 +101,11 @@ const doughnutOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right',
-      labels: { color: '#5fbfbb' }
+      position: 'bottom',
+      labels: { color: '#5fbfbb', boxWidth: 12 }
     }
   },
-  cutout: '70%'
+  cutout: '60%'
 }
 const ipData = computed(() => {
   const counts = {}
@@ -114,12 +114,10 @@ const ipData = computed(() => {
     counts[ip] = (counts[ip] || 0) + 1
   })
   
-  //Sort by count descending and take top 5
   const sortedIps = Object.keys(counts)
     .sort((a, b) => counts[b] - counts[a])
     .slice(0, 5)
 
-  //Function to generate deterministic color from IP string
   const stringToColor = (str) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -145,24 +143,24 @@ const ipData = computed(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
     <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
       <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Threat Severity</h3>
-      <div class="h-64">
+      <div class="h-48 md:h-64">
         <Doughnut :data="severityData" :options="doughnutOptions" />
       </div>
     </div>
 
     <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb]">
       <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Traffic by Port</h3>
-      <div class="h-64">
+      <div class="h-48 md:h-64">
         <Bar :data="portData" :options="chartOptions" />
       </div>
     </div>
 
     <div class="bg-[rgba(22,21,21,0.9)] p-6 rounded-lg shadow-sm border border-[#5fbfbb] lg:col-span-1 md:col-span-2">
       <h3 class="text-[#5fbfbb] text-sm font-medium mb-4 uppercase">Top Attackers (IP)</h3>
-      <div class="h-64">
+      <div class="h-48 md:h-64">
         <Bar :data="ipData" :options="chartOptions" />
       </div>
     </div>

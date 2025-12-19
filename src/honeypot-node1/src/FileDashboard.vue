@@ -6,7 +6,7 @@
     </div>
     
     <div class="alert-banner">
-      WARNING: Unauthorized access to these documents is a federal offense.
+      WARNING: Do not download these files.
     </div>
 
     <div class="file-list">
@@ -44,7 +44,6 @@ export default {
   },
   methods: {
     async downloadFile(file) {
-      //Notify Backend (Node 1) about the exfiltration attack
       try {
         await axios.post('/api/download', {
           filename: file.name,
@@ -54,7 +53,6 @@ export default {
         console.error('Error logging exfiltration attack:', error);
       }
 
-      //Notify Collector via Socket for live tracking
       if (this.socket && this.socket.connected) {
         this.socket.emit('honeypot_interaction', {
           honeypotId: this.honeypotId || 'node1',
@@ -66,7 +64,6 @@ export default {
         });
       }
 
-      //Simulate Download
       const element = document.createElement('a');
       element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent('nothing here :)'));
       element.setAttribute('download', file.name);
@@ -74,14 +71,6 @@ export default {
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
-      
-     /* Swal.fire({
-        icon: 'success',
-        title: 'Download Started',
-        text: `Downloading ${file.name}...`,
-        timer: 2000,
-        showConfirmButton: false
-      });*/
     }
   }
 }

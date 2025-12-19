@@ -8,20 +8,34 @@ const sessions = computed(() => socketStore.liveSessions)
 const containerRef = ref(null)
 
 watch(sessions, (newSessions) => {
-  const sessionIds = Object.keys(newSessions)
-  if (sessionIds.length > 0) {
-    if (!activeSession.value || !newSessions[activeSession.value]) {
-      activeSession.value = sessionIds[0]
-    }
-  } else {
+  const entries = Object.entries(newSessions || {})
+  if (entries.length === 0) {
     activeSession.value = null
+    return
+  }
+
+  let latestId = null
+  let latestTs = 0
+  entries.forEach(([id, s]) => {
+    const ts = Number(s && s.lastActivity) || 0
+    if (ts > latestTs) { latestTs = ts; latestId = id }
+  })
+
+  if (!activeSession.value || !newSessions[activeSession.value]) {
+    activeSession.value = latestId || entries[0][0]
   }
 }, { immediate: true, deep: true })
 
 onMounted(() => {
-  const sessionIds = Object.keys(sessions.value)
-  if (sessionIds.length > 0 && !activeSession.value) {
-    activeSession.value = sessionIds[0]
+  const entries = Object.entries(sessions.value || {})
+  if (entries.length > 0 && !activeSession.value) {
+    let latestId = null
+    let latestTs = 0
+    entries.forEach(([id, s]) => {
+      const ts = Number(s && s.lastActivity) || 0
+      if (ts > latestTs) { latestTs = ts; latestId = id }
+    })
+    activeSession.value = latestId || entries[0][0]
   }
 })
 </script>
@@ -42,12 +56,12 @@ onMounted(() => {
     </div>
     
     <!-- Virtual Screen Container -->
-    <div ref="containerRef" class="relative w-full bg-[rgba(22,21,21,0.95)] border-2 border-[#5fbfbb] rounded-lg shadow-lg overflow-hidden aspect-video">
+    <div ref="containerRef" class="relative w-full max-w-xl mx-auto bg-[rgba(22,21,21,0.95)] border-2 border-[#5fbfbb] rounded-lg shadow-lg overflow-hidden" style="height:480px;">
       
       <div v-if="activeSession && sessions[activeSession]" class="w-full h-full relative">
         
         <!-- View: LOGIN PAGE -->
-        <div v-if="!sessions[activeSession].currentView || sessions[activeSession].currentView === 'login'" 
+        <div v-if="!sessions[activeSession].loggedIn && (!sessions[activeSession].currentView || sessions[activeSession].currentView === 'login')" 
              class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#5fbfbb] to-[rgba(22,21,21,0.8)]">
           <div class="bg-white p-6 rounded-lg shadow-xl border-2 border-[#5fbfbb]" style="max-width: 300px; width: 100%;">
              <div class="mb-4 text-center">
@@ -84,54 +98,28 @@ onMounted(() => {
         </div>
 
         <!-- View: FILE DASHBOARD (Logged In) -->
-        <div v-else-if="sessions[activeSession].currentView === 'dashboard'" 
-             class="absolute inset-0 bg-[#f5f5f5] flex flex-col font-sans">
-            <!-- Simulated Header -->
-            <header class="bg-[#2c3e50] text-white p-4 flex justify-between items-center shadow-md">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-[#e74c3c] flex items-center justify-center font-bold">A</div>
-                    <span class="font-bold text-lg">Restricted Access Area</span>
-                </div>
-                <button class="px-3 py-1 bg-[#c0392b] rounded text-sm hover:bg-[#a93226]">Logout</button>
-            </header>
+        <div v-else-if="sessions[activeSession].loggedIn || sessions[activeSession].currentView === 'dashboard'" class="absolute inset-0 bg-[#f5f5f5] flex items-center justify-center font-sans">
+          <div class="bg-white p-6 rounded-lg shadow-xl border-2 border-[#5fbfbb]" style="max-width: 600px; width: 100%;">
+            <div class="dashboard-header flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+            <h2 class="text-lg font-bold text-[#c0392b]">Restricted Access Area</h2>
+            <button class="logout-btn bg-[#95a5a6] text-white px-2 py-1 rounded" @click="handleLogout">Logout</button>
+          </div>
 
-            <!-- Simulated Content -->
-            <main class="flex-1 p-6 overflow-y-auto">
-                <div class="max-w-4xl mx-auto">
-                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-6 rounded shadow-sm text-sm">
-                        <strong class="font-bold">WARNING:</strong> Unauthorized access is strictly prohibited.
-                    </div>
+          <div class="alert-banner bg-red-50 text-red-700 px-3 py-2 rounded mb-4 text-sm font-bold text-center border border-red-200">
+            WARNING: Do not download these documents.
+          </div>
 
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                            <h3 class="font-semibold text-gray-700">Confidential Files</h3>
-                            <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">Level 5 Clearance</span>
-                        </div>
-                        <table class="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Filename</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th class="px-4 py-2 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <tr v-for="file in ['passwords.txt', 'salary_report.xlsx', 'network_config.json', 'vpn_keys.zip']" :key="file" class="hover:bg-gray-50">
-                                    <td class="px-4 py-2 text-gray-900 font-medium whitespace-nowrap flex items-center gap-2">
-                                        📄 {{ file }}
-                                    </td>
-                                    <td class="px-4 py-2 text-gray-500">12 KB</td>
-                                    <td class="px-4 py-2 text-gray-500">2024-12-10</td>
-                                    <td class="px-4 py-2 text-right">
-                                        <button class="text-blue-600 hover:text-blue-900 font-semibold px-2">Download</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
+          <div class="file-list flex flex-col gap-3">
+            <div class="file-item flex items-center p-3 border rounded" v-for="file in [{name:'passwords.txt',size:'12 KB',date:'2024-12-10'},{name:'salary_report_2024.xlsx',size:'1.2 MB',date:'2024-11-28'},{name:'network_config.json',size:'4 KB',date:'2025-01-15'},{name:'vpn_keys.zip',size:'45 MB',date:'2024-10-05'},{name:'admin_notes.docx',size:'24 KB',date:'2024-12-20'}]" :key="file.name">
+            <div class="file-icon text-2xl mr-3">📄</div>
+            <div class="file-details flex-grow">
+              <div class="file-name font-semibold text-sm text-[#2c3e50]">{{ file.name }}</div>
+              <div class="file-meta text-xs text-gray-500">{{ file.size }} • {{ file.date }}</div>
+            </div>
+            <button class="download-btn bg-[#3498db] text-white px-3 py-1 rounded text-sm">Download</button>
+            </div>
+          </div>
+          </div>
         </div>
 
         <!-- Mouse Cursor -->
@@ -161,7 +149,7 @@ onMounted(() => {
                 d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
         <h3 class="text-lg font-medium mb-1">Waiting for connections...</h3>
-        <p class="text-sm text-gray-500">Node 1 Signal Lost</p>
+        <p class="text-sm text-gray-500">Honeypot Node 1</p>
       </div>
     </div>
   </div>

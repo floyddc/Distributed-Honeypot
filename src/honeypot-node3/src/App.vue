@@ -28,7 +28,6 @@
             @click="triggerFileInput"
           >
             <div class="drop-content">
-              <span class="upload-icon">📤</span>
               <p v-if="file" class="selected-filename">{{ file.name }}</p>
               <p v-else class="upload-instruction">
                 <strong>Drag & drop</strong> sensitive files here<br>
