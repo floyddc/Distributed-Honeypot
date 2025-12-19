@@ -26,6 +26,7 @@
 
 <script>
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export default {
   name: 'FileDashboard',
@@ -74,7 +75,13 @@ export default {
       element.click();
       document.body.removeChild(element);
       
-      //alert('File downloaded successfully');
+     /* Swal.fire({
+        icon: 'success',
+        title: 'Download Started',
+        text: `Downloading ${file.name}...`,
+        timer: 2000,
+        showConfirmButton: false
+      });*/
     }
   }
 }

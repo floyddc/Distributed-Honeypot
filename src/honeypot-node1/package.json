@@ -17,6 +17,7 @@
     "groq-sdk": "^0.37.0",
     "mqtt": "^5.14.1",
     "socket.io-client": "^4.8.1",
+    "sweetalert2": "^11.26.10",
     "vue": "^3.3.0"
   },
   "devDependencies": {

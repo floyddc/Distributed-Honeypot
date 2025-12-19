@@ -63,7 +63,7 @@
       :sessionId="sessionId" 
       :honeypotId="'node1'"
       :clientIp="clientIp"
-      @logout="isLoggedIn = false"
+      @logout="handleLogout"
     />
   </div>
 </template>
@@ -71,6 +71,8 @@
 <script>
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import './style.css';
 import FileDashboard from './FileDashboard.vue';
 
@@ -91,7 +93,15 @@ export default {
     }
   },
   async created() {
-    this.sessionId = this.generateSessionId();
+    // Check for existing session in storage
+    const storedSession = sessionStorage.getItem('honeypot_session_id');
+    if (storedSession) {
+      this.sessionId = storedSession;
+    } else {
+      this.sessionId = this.generateSessionId();
+      sessionStorage.setItem('honeypot_session_id', this.sessionId);
+    }
+
     const collectorUrl = `http://${window.location.hostname}:3000`;
     this.socket = io(collectorUrl);
     
@@ -201,16 +211,42 @@ export default {
         if (response.data.success) {
           this.isLoggedIn = true;
         } else {
-          alert('Invalid username or password');
+          Swal.fire({
+            icon: 'error',
+            title: 'Access Denied',
+            text: 'Invalid username or password',
+            confirmButtonColor: '#e74c3c'
+          });
         }
       } catch (error) {
         const errorMsg = error.response?.data?.message || 'Invalid username or password';
-        alert(errorMsg);
+        Swal.fire({
+          icon: 'error',
+          title: 'Access Denied',
+          text: errorMsg,
+          confirmButtonColor: '#e74c3c'
+        });
       } finally {
         this.loading = false;
         if (!this.isLoggedIn) {
           this.password = '';
         }
+      }
+    },
+
+    handleLogout() {
+      this.isLoggedIn = false;
+      this.username = '';
+      this.password = '';
+      
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('honeypot_interaction', {
+          honeypotId: 'node1',
+          sessionId: this.sessionId,
+          type: 'navigation',
+          view: 'login',
+          timestamp: Date.now()
+        });
       }
     }
   }
