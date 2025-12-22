@@ -92,10 +92,12 @@ socket.on('connect', async () => {
 
 socket.on('connect_error', (error) => {
   console.error('Failed to connect to collector server (Socket.IO)', error && error.message ? error.message : error);
+  collectorOnline = false;
 });
 
 socket.on('disconnect', () => {
   console.log('Disconnected from collector - buffering mode activated (Socket.IO)');
+  collectorOnline = false;
 });
 
 // Save uploaded file on memory, not on disk (<- potential security issue)
