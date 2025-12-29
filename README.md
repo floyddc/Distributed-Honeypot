@@ -1,4 +1,18 @@
-# NOTES (building up this project)
+# 🛡️🌐 DISTRIBUTED HONEYPOT 💻🥷
+
+## Table of contents
+
+- [Introduction](#introduction)
+- [How to install](#how-to-install)
+- [How to turn on the system](#how-to-turn-on-the-system)
+- [How Honeypot-node1 works](#how-honeypot-node1-works)
+- [How Honeypot-node2 works](#how-honeypot-node2-works)
+- [How Honeypot-node3 works](#how-honeypot-node3-works)
+- [Project tree](#project-tree)
+
+## Introduction
+
+Distributed Honeypot is a containerized system designed to simulate simple, intentionally vulnerable services (a fake login page, an SSH service, and a file uploader) so that real-world intrusion attempts can be observed and recorded. The project runs multiple isolated "honeypot" nodes that attract malicious probes and interactions. All captured data (credentials, commands, uploaded files, live interactions) are collected centrally and stored for analysis.
 
 ## How to install
 - Clone the repo:
@@ -26,34 +40,6 @@
   - `npm run dev`
   - Visit http://localhost:5173/ (or any generated link).
 
-### How to manage containers
-- **Running Docker Desktop is required**.
-- `cd src`
-- Turn off all containers:
-  - `docker-compose down`
-- List all containers:
-  - `docker ps -a`
-- Delete a specific container:
-  - `docker rm <ID>` 
-
-## How to connect to MongoDB
-- `docker exec -it mongo1 mongosh`
-- `use distributed-honeypot` to select the database.
-- `show collections` to list tables.
-- `db.users.find()` to list registered users.
-- `db.honeypots.find()` to list registered honeypots.
-- `db.attacks.find()` to list collected attacks.
-- `db.sessions.find()` to list active/collected SSH/login sessions.
-
-## How to run tests
-- **Running system is required**.
-- `cd src/tests`
-- `npm run test:login`
-- `npm run test:ssh`
-- `npm run test:llm`
-- `npm run test:heartbeat`
-- `npm run test:stats`
-
 ### How Honeypot-node1 works
 - Visit http://localhost:3001 to visit the fake login page.
 - Interact with it and check the dashboard.
@@ -63,7 +49,7 @@
 ### How Honeypot-node2 works
 - Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
 - Interact with it and check the dashboard.
-- _Delete your host key after first use_: `ssh-keygen -R "[localhost]:2222" `
+- _Delete your host key after use_: `ssh-keygen -R "[localhost]:2222" `
 
 ### How Honeypot-node3 works
 - Visit http://localhost:3003 to visit the fake file uploader.
