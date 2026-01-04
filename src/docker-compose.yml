@@ -17,7 +17,7 @@ services:
       mongo1:
         condition: service_healthy
       mongo2:
-        condition: service_healthy  
+        condition: service_healthy
       mongo3:
         condition: service_healthy
     networks:
@@ -25,14 +25,27 @@ services:
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    user: root  
-    privileged: true  
+    user: root
+    privileged: true
+
+  dashboard-client:
+    build:
+      context: ./dashboard-client
+      dockerfile: Dockerfile
+    container_name: dashboard-client
+    ports:
+      - "8080:80"
+    depends_on:
+      - collector-server
+    networks:
+      - app-network
+    restart: unless-stopped
 
   mosquitto:
     image: eclipse-mosquitto:2.0
     container_name: mosquitto
     ports:
-      - "1883:1883"  
+      - "1883:1883"
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./mosquitto/data:/mosquitto/data
@@ -40,22 +53,22 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-h", "127.0.0.1", "-t", "healthcheck", "-C", "1"]
+      test: [ "CMD", "mosquitto_sub", "-h", "127.0.0.1", "-t", "healthcheck", "-C", "1" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     restart: unless-stopped
-    
+
   mongo1:
     image: mongo:6
     container_name: mongo1
-    ports: ["27017:27017"]
-    command: ["mongod","--replSet","rs0","--bind_ip_all"]
-    volumes: ["./mongo-data/mongo1:/data/db"]
-    networks: ["app-network"]
+    ports: [ "27017:27017" ]
+    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+    volumes: [ "./mongo-data/mongo1:/data/db" ]
+    networks: [ "app-network" ]
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -64,11 +77,11 @@ services:
   mongo2:
     image: mongo:6
     container_name: mongo2
-    command: ["mongod","--replSet","rs0","--bind_ip_all"]
-    volumes: ["./mongo-data/mongo2:/data/db"]
-    networks: ["app-network"]
+    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+    volumes: [ "./mongo-data/mongo2:/data/db" ]
+    networks: [ "app-network" ]
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -77,11 +90,11 @@ services:
   mongo3:
     image: mongo:6
     container_name: mongo3
-    command: ["mongod","--replSet","rs0","--bind_ip_all"]
-    volumes: ["./mongo-data/mongo3:/data/db"]
-    networks: ["app-network"]
+    command: [ "mongod", "--replSet", "rs0", "--bind_ip_all" ]
+    volumes: [ "./mongo-data/mongo3:/data/db" ]
+    networks: [ "app-network" ]
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -89,21 +102,21 @@ services:
 
   mongo-init:
     image: mongo:6
-    depends_on: 
+    depends_on:
       mongo1:
         condition: service_healthy
       mongo2:
         condition: service_healthy
       mongo3:
         condition: service_healthy
-    networks: ["app-network"]
+    networks: [ "app-network" ]
     restart: "no"
     command:
       - /bin/bash
       - -c
       - |
         echo "=== Initializing MongoDB Replica Set ==="
-        
+
         # Wait for all nodes
         echo "Waiting for MongoDB nodes to be ready..."
         for i in {1..30}; do
@@ -116,7 +129,7 @@ services:
           echo "Waiting... ($$i/30)"
           sleep 2
         done
-        
+
         # Initialize replica set
         echo "Initializing replica set..."
         mongosh --host mongo1:27017 --quiet --eval "

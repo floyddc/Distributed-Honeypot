@@ -19,7 +19,10 @@ const io = new Server(server, {
 });
 
 // Connect to Database
-connectDB();
+connectDB().then(async () => {
+    const initializeDatabase = require('./config/initDb');
+    await initializeDatabase();
+});
 
 // Middleware
 app.use(cors());
@@ -56,7 +59,7 @@ app.get('/api/sessions', async (req, res) => {
         const sessions = await Session.find({ status: 'active' })
             .select('sessionId honeypotId type buffer fields mouseX mouseY lastActivity')
             .sort({ lastActivity: -1 });
-        
+
         console.log(`[API] Returning ${sessions.length} active sessions`);
         res.json(sessions);
     } catch (error) {
@@ -117,7 +120,7 @@ setInterval(async () => {
 setInterval(async () => {
     const timeout = 20000; // 20s
     const threshold = new Date(Date.now() - timeout);
-    
+
     try {
         const result = await Session.updateMany(
             {
@@ -131,15 +134,15 @@ setInterval(async () => {
                 }
             }
         );
-        
+
         if (result.modifiedCount > 0) {
             console.log(`[DB] Marked ${result.modifiedCount} sessions as ended due to inactivity`);
-            
+
             const endedSessions = await Session.find({
                 status: 'ended',
                 endTime: { $gte: threshold }
             }).select('sessionId');
-            
+
             endedSessions.forEach(session => {
                 io.emit('live_interaction', {
                     sessionId: session.sessionId,
@@ -179,12 +182,12 @@ io.on('connection', async (socket) => {
 
     socket.on('session_data', async (data) => {
         console.log(`[SSH] Received session_data from ${data.honeypotId}`);
-        
+
         const sessionId = data.sessionId || 'default';
-        
+
         try {
             let session = await Session.findOne({ sessionId });
-            
+
             if (!session) {
                 session = new Session({
                     sessionId,
@@ -198,9 +201,9 @@ io.on('connection', async (socket) => {
                 session.buffer += data.data;
                 session.lastActivity = new Date();
             }
-            
+
             await session.save();
-            
+
             io.emit('live_session_feed', data);
         } catch (error) {
             console.error('[DB] Error saving session data:', error);
@@ -209,12 +212,12 @@ io.on('connection', async (socket) => {
 
     socket.on('honeypot_interaction', async (data) => {
         console.log(`[LOGIN] ${data.type} on ${data.honeypotId}`);
-        
+
         const { sessionId } = data;
-        
+
         try {
             let session = await Session.findOne({ sessionId });
-            
+
             if (!session) {
                 session = new Session({
                     sessionId,
@@ -230,24 +233,24 @@ io.on('connection', async (socket) => {
             } else {
                 session.events.push(data);
                 session.lastActivity = new Date();
-                
+
                 if (data.type === 'mousemove') {
                     session.mouseX = data.x;
                     session.mouseY = data.y;
                 } else if (data.type === 'input' && data.field) {
                     if (!session.fields) session.fields = {};
                     session.fields[data.field] = data.value;
-                    session.markModified('fields'); 
+                    session.markModified('fields');
                 }
-                
+
                 if (data.type === 'session_end') {
                     session.status = 'ended';
                     session.endTime = new Date();
                 }
             }
-            
+
             await session.save();
-            
+
             io.emit('live_interaction', data);
         } catch (error) {
             console.error('[DB] Error saving interaction:', error);
