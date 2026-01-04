@@ -13,22 +13,22 @@ function quickAnalyzeLogin(username, password) {
   const combined = `${username} ${password}`.toLowerCase();
   
   if (/(\.\.|%2e%2e|%252e)/i.test(combined)) {
-    return { severity: 'medium', description: 'Path traversal' };
+    return { severity: 'medium', description: 'Path traversal [Fallback]' };
   }
   
   if (/(\bor\b.*=|union\b.*select|insert\b.*into|delete\b.*from|drop\b.*table|'|"|;--|\*|\/\*)/.test(combined)) {
-    return { severity: 'critical', description: 'SQL injection' };
+    return { severity: 'critical', description: 'SQL injection [Fallback]' };
   }
   
   if (/<script|<iframe|javascript:|onerror=|onload=|eval\(|alert\(/i.test(combined)) {
-    return { severity: 'critical', description: 'XSS attack' };
+    return { severity: 'critical', description: 'XSS attack [Fallback]' };
   }
   
   if (/(\||&|`|\$\(|\bls\b|\bcat\b|\bwhoami\b|\bpwd\b|\brm\b|\bmv\b|\bcp\b)/.test(combined)) {
-    return { severity: 'critical', description: 'Command injection' };
+    return { severity: 'critical', description: 'Command injection [Fallback]' };
   }
   
-  return { severity: 'low', description: 'Login attempt' };
+  return { severity: 'low', description: 'Login attempt [Fallback]' };
 }
 
 function quickAnalyzeFile(fileExtension) {

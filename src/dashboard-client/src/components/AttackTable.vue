@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 import LocationMapModal from './LocationMapModal.vue'
 import ReportModal from './ReportModal.vue'
+import IpLookupModal from './IpLookupModal.vue'
 
 const props = defineProps({
   attacks: {
@@ -18,6 +19,8 @@ const showModal = ref(false)
 const selectedLocation = ref(null)
 const showReportModal = ref(false)
 const selectedHoneypot = ref({ honeypotId: '', port: '' })
+const showIpLookupModal = ref(false)
+const selectedIp = ref('')
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('it-IT', {
@@ -62,6 +65,16 @@ const openReportModal = (honeypotId, port) => {
 const closeReportModal = () => {
   showReportModal.value = false
 }
+
+const openIpLookupModal = (ip) => {
+  selectedIp.value = ip
+  showIpLookupModal.value = true
+}
+
+const closeIpLookupModal = () => {
+  showIpLookupModal.value = false
+  selectedIp.value = ''
+}
 </script>
 
 <template>
@@ -86,19 +99,29 @@ const closeReportModal = () => {
         <tbody class="bg-[rgba(22,21,21,0.9)] divide-y divide-[rgba(95,191,187,0.3)]">
           <tr v-for="(attack, index) in attacks" :key="index" class="hover:bg-[rgba(95,191,187,0.1)]">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ formatDate(attack.timestamp) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-[#5fbfbb] font-mono">{{ attack.sourceIp }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              <button 
+                @click="openIpLookupModal(attack.sourceIp)"
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#7fd9d5] hover:bg-[#4fa9a5] rounded transition-colors font-mono"
+                title="View IP details"
+              >
+                <span class="text-base">🔍</span>
+                <span class="text-sm text-[rgba(22,21,21,0.95)] hover:text-gray-200 transition-colors">{{ attack.sourceIp }}</span>
+              </button>
+            </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">
               <!-- Button for users -->
               <button 
                 v-if="authStore.user?.role !== 'admin'"
                 @click="openReportModal(attack.honeypotId, attack.port)"
-                class="font-mono text-orange-400 hover:text-orange-300 hover:underline focus:outline-none"
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#7fd9d5] hover:bg-orange-800 rounded transition-colors"
                 title="Report as faulty"
               >
-                {{ attack.honeypotId }}:{{ attack.port }}
+                <span class="text-base">🚩</span>
+                <span class="font-mono text-sm text-[rgba(22,21,21,0.95)] hover:text-gray-200 transition-colors">{{ attack.honeypotId }}:{{ attack.port }}</span>
               </button>
               <!-- Text for admin -->
-              <span v-else class="font-mono">{{ attack.honeypotId }}:{{ attack.port }}</span>
+              <span v-else class="font-mono hover:text-gray-200">{{ attack.honeypotId }}:{{ attack.port }}</span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-300 max-w-xs truncate">{{ attack.description || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap">
@@ -110,13 +133,16 @@ const closeReportModal = () => {
               <button 
                 v-if="attack.geoData?.lat && attack.geoData?.lon"
                 @click="openLocationModal(attack)"
-                class="text-[#5fbfbb] hover:text-[#7fd9d5] hover:underline focus:outline-none focus:ring-2 focus:ring-[#5fbfbb] focus:ring-offset-2 focus:ring-offset-[rgba(22,21,21,0.9)] rounded px-2 py-1 transition-colors"
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#7fd9d5] hover:bg-[#4fa9a5] rounded transition-colors"
               >
-                <span v-if="attack.geoData?.city && attack.geoData?.country">
-                  {{ attack.geoData.city }}, {{ attack.geoData.country }}
-                </span>
-                <span v-else-if="attack.geoData?.country">
-                  {{ attack.geoData.country }}
+                <span class="text-base">📍</span>
+                <span class="text-sm text-[rgba(22,21,21,0.95)] hover:text-gray-200 transition-colors">
+                  <span v-if="attack.geoData?.city && attack.geoData?.country">
+                    {{ attack.geoData.city }}, {{ attack.geoData.country }}
+                  </span>
+                  <span v-else-if="attack.geoData?.country">
+                    {{ attack.geoData.country }}
+                  </span>
                 </span>
               </button>
               <span v-else class="text-gray-500">Unknown</span>
@@ -135,6 +161,11 @@ const closeReportModal = () => {
       v-if="showModal" 
       :location="selectedLocation"
       @close="closeModal"
+    />
+    <IpLookupModal
+      v-if="showIpLookupModal"
+      :ip="selectedIp"
+      @close="closeIpLookupModal"
     />
     <ReportModal
       v-if="showReportModal"

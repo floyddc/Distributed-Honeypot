@@ -5,9 +5,7 @@
 - [Introduction](#introduction)
 - [How to install](#how-to-install)
 - [How to turn on the system](#how-to-turn-on-the-system)
-- [How Honeypot-node1 works](#how-honeypot-node1-works)
-- [How Honeypot-node2 works](#how-honeypot-node2-works)
-- [How Honeypot-node3 works](#how-honeypot-node3-works)
+- [How Honeypots and Dashboard work](#how-honeypots-and-dashboard-work)
 - [Project tree](#project-tree)
 
 ## Introduction
@@ -27,33 +25,23 @@ Distributed Honeypot is a containerized system designed to simulate simple, inte
   - `cd src`
   - `docker-compose build`
 
-- Run all containers (_collector server, honeypot nodes, ollama, mongodb_):
-  - `docker-compose up` (it'll download ollama Docker image **only on first use**, be patient).
+- Run all containers (_collector server, honeypot nodes, mosquitto, mongodb_):
+  - `docker-compose up`.
     - OR `docker-compose up -d` in background, if you don't want to see logs.
   - Visit http://localhost:3000/ to check if the server is running.
 
 - In another Terminal (**only on first use**):
   - `docker exec -it collector-server node scripts/seed-db.js` to create pre-set users.
+    - User 1 (admin): `admin@gmail.com / admin`.
+    - User 2 (user): `user@gmail.com / password`. 
 
-- Run a client to open a dashboard:
+- Run a Client to open a Dashboard:
   - `cd src/dashboard-client`
   - `npm run dev`
   - Visit http://localhost:5173/ (or any generated link).
 
-### How Honeypot-node1 works
-- Visit http://localhost:3001 to visit the fake login page.
-- Interact with it and check the dashboard.
-- Correct credentials to log in are: `admin / password123`.
-- Try to download `passwords.txt` file and check it and the dashboard.
-
-### How Honeypot-node2 works
-- Try to connect to the SSH server: `ssh -p 2222 root@localhost` (password: `123456`).
-- Interact with it and check the dashboard.
-- _Delete your host key after use_: `ssh-keygen -R "[localhost]:2222" `
-
-### How Honeypot-node3 works
-- Visit http://localhost:3003 to visit the fake file uploader.
-- Upload a file and check check the dashboard.
+## How Honeypots and Dashboard work
+- Click on `Help` button on the Dashboard (at the bottom right).
 
 ### Project tree
 ```

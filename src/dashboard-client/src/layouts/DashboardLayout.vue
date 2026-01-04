@@ -5,6 +5,7 @@ import { useSocketStore } from '../stores/socket'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import ActionPopup from '../components/ActionPopup.vue'
+import ChangePasswordModal from '../components/ChangePasswordModal.vue'
 
 const authStore = useAuthStore()
 const socketStore = useSocketStore()
@@ -26,6 +27,7 @@ const handleLogout = () => {
 const showConfirm = ref(false)
 const confirmMessage = ref('')
 let confirmResolve = null
+const showPasswordModal = ref(false)
 
 const askConfirm = (msg) => {
   return new Promise((resolve) => {
@@ -120,7 +122,7 @@ onMounted(() => {
         </nav>
 
       <div class="p-4 border-t border-[#5fbfbb] bg-[rgba(22,21,21,0.95)] mt-auto">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-3">
           <div class="flex items-center">
             <div class="w-8 h-8 rounded-full bg-[#5fbfbb] flex items-center justify-center text-xs font-bold text-[rgba(22,21,21,0.8)]">
               {{ authStore.user?.username.charAt(0).toUpperCase() }}
@@ -130,7 +132,12 @@ onMounted(() => {
               <p class="text-xs text-gray-400">{{ authStore.user?.role || 'User' }}</p>
             </div>
           </div>
-          <button @click="handleDeleteAccount" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
+        </div>
+        <div class="flex gap-2">
+          <button @click="showPasswordModal = true" class="flex-1 text-xs py-1.5 px-2 bg-[rgba(95,191,187,0.2)] text-[#5fbfbb] hover:bg-[rgba(95,191,187,0.3)] rounded transition-colors">
+            Change Password
+          </button>
+          <button @click="handleDeleteAccount" class="flex-1 text-xs py-1.5 px-2 bg-[rgba(239,68,68,0.2)] text-red-400 hover:bg-[rgba(239,68,68,0.3)] rounded transition-colors">
             Delete Account
           </button>
         </div>
@@ -162,7 +169,7 @@ onMounted(() => {
             </span>
           </div>
 
-          <button @click="handleLogout" class="text-sm text-gray-300 hover:text-red-400 transition-colors">
+          <button @click="handleLogout" class="text-xs py-1.5 px-3 bg-[rgba(239,68,68,0.2)] text-red-400 hover:bg-[rgba(239,68,68,0.3)] rounded transition-colors">
             Logout
           </button>
         </div>
@@ -174,5 +181,6 @@ onMounted(() => {
       </main>
     </div>
     <ActionPopup v-model="showConfirm" :message="confirmMessage" :confirm="true" @confirm="onConfirm" @cancel="onCancel" />
+    <ChangePasswordModal v-if="showPasswordModal" @close="showPasswordModal = false" />
   </div>
 </template>

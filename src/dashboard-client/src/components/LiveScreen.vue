@@ -66,13 +66,11 @@ onMounted(() => {
           <div class="bg-white p-6 rounded-lg shadow-xl border-2 border-[#5fbfbb]" style="max-width: 300px; width: 100%;">
              <div class="mb-4 text-center">
                 <h1 class="text-2xl font-bold text-[rgba(22,21,21,0.9)]">ASW</h1>
-                <p class="text-xs text-gray-500 uppercase tracking-widest">Protected Area</p>
+                <p class="text-xs text-gray-500 tracking-widest">Protected Area</p>
              </div>
-             
-            <h2 class="text-xl font-bold mb-3 text-[rgba(22,21,21,0.9)]">Login</h2>
-            
+                         
             <div class="form-group mb-3">
-              <label class="block mb-1 text-xs text-gray-700">Username:</label>
+              <label class="block mb-1 text-xs text-gray-700">User ID</label>
               <input 
                 :value="sessions[activeSession].fields?.username || ''"
                 class="w-full px-3 py-1.5 border-2 border-[#5fbfbb] rounded text-sm bg-white text-gray-900 font-mono"
@@ -81,7 +79,7 @@ onMounted(() => {
             </div>
             
             <div class="form-group mb-3">
-              <label class="block mb-1 text-xs text-gray-700">Password:</label>
+              <label class="block mb-1 text-xs text-gray-700">Password</label>
               <input 
                 :value="sessions[activeSession].fields?.password || ''"
                 type="text"

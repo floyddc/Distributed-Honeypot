@@ -37,8 +37,7 @@ const severityData = computed(() => {
     labels: ['Low/Unknown', 'Medium', 'Critical'],
     datasets: [{
       backgroundColor: ['#5fbfbb', '#f59e0b', '#ef4444'],
-      borderColor: '#5fbfbb',
-      borderWidth: 2,
+      borderWidth: 0,
       data: [counts.low, counts.medium, counts.critical]
     }]
   }
