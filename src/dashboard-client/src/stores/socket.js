@@ -12,6 +12,7 @@ export const useSocketStore = defineStore('socket', () => {
   const terminalSessions = ref({})
   const unreadReports = ref(0)
   const reportToastIds = new Set()
+  const seenIps = new Set()
 
   // fallback
   const loadSessionsFromStorage = () => {
@@ -133,6 +134,11 @@ export const useSocketStore = defineStore('socket', () => {
         const data = await response.json()
         console.log('Loaded attacks:', data.length)
         attacks.value = data
+
+        //seen IPs
+        data.forEach(attack => {
+          if (attack.sourceIp) seenIps.add(attack.sourceIp)
+        })
       } else {
         console.error('Failed to load attacks, status:', response.status)
       }
@@ -168,6 +174,16 @@ export const useSocketStore = defineStore('socket', () => {
     socket.value.on('new_attack', (data) => {
       console.log('New attack received:', data)
       attacks.value.unshift(data)
+
+      if (data.sourceIp && !seenIps.has(data.sourceIp)) {
+        seenIps.add(data.sourceIp)
+        const toast = useToast()
+        toast.error(`New Unknown Attacker detected: ${data.sourceIp}`, {
+          timeout: 5000,
+          closeOnClick: true,
+          draggable: true
+        })
+      }
 
       if (attacks.value.length > 50) {
         attacks.value = attacks.value.slice(0, 50)
@@ -236,8 +252,8 @@ export const useSocketStore = defineStore('socket', () => {
 
       if (data.type === 'session_end') {
         console.log('[SocketStore] Session ended:', sessionId)
-        try { delete liveSessions.value[sessionId] } catch (e) {}
-        try { delete terminalSessions.value[sessionId] } catch (e) {}
+        try { delete liveSessions.value[sessionId] } catch (e) { }
+        try { delete terminalSessions.value[sessionId] } catch (e) { }
         return
       }
 
@@ -278,7 +294,7 @@ export const useSocketStore = defineStore('socket', () => {
       }
     })
 
-    try { cleanupSessions() } catch(e) { }
+    try { cleanupSessions() } catch (e) { }
 
     socket.value.on('live_session_feed', (payload) => {
       console.log('[SocketStore] Received live_session_feed:', payload)
@@ -382,7 +398,7 @@ export const useSocketStore = defineStore('socket', () => {
       socket.value = null
     }
     reportToastIds.clear()
-    try { if (cleanupInterval) { clearInterval(cleanupInterval); cleanupInterval = null } } catch(e){}
+    try { if (cleanupInterval) { clearInterval(cleanupInterval); cleanupInterval = null } } catch (e) { }
   }
 
   const markReportsRead = () => {

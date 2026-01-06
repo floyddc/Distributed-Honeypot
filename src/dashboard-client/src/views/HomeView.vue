@@ -158,31 +158,49 @@ const closeReportModal = () => {
         </div>
 
         <!-- Live Terminal Button -->
-        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
-          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase mb-2">Live SSH Honeypot</h3>
-          <button 
-            @click="showTerminal = !showTerminal"
-            class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="showTerminal 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-[#5fbfbb] hover:bg-[#4fa9a5] text-[rgba(22,21,21,0.9)]'"
-          >
-            {{ showTerminal ? '✕ Close' : '▶ Open' }}
-          </button>
+        <div 
+          @click="showTerminal = !showTerminal"
+          class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group relative overflow-hidden h-full bg-gradient-to-br from-[rgba(22,21,21,0.95)] to-[rgba(30,30,30,0.95)]"
+          :class="showTerminal ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#5fbfbb] hover:shadow-[0_0_15px_rgba(95,191,187,0.3)]'"
+        >
+          
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent to-[rgba(95,191,187,0.05)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          
+      
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300 text-[#5fbfbb]">
+            {{ showTerminal ? '⏸' : '▶' }}
+          </div>
+          
+      
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase tracking-wider text-center group-hover:text-white transition-colors">
+            SSH Terminal
+          </h3>
+          <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest group-hover:text-gray-400 transition-colors">
+            {{ showTerminal ? 'Pause Feed' : 'Start Feed' }}
+          </p>
         </div>
 
         <!-- Live Login Screen Button -->
-        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
-          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase mb-2">Live Login Honeypot</h3>
-          <button 
-            @click="showLiveScreen = !showLiveScreen"
-            class="w-full px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="showLiveScreen 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-[#5fbfbb] hover:bg-[#4fa9a5] text-[rgba(22,21,21,0.9)]'"
-          >
-            {{ showLiveScreen ? '✕ Close' : '▶ Open' }}
-          </button>
+        <div 
+          @click="showLiveScreen = !showLiveScreen"
+          class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border cursor-pointer transition-all duration-300 flex flex-col items-center justify-center group relative overflow-hidden h-full bg-gradient-to-br from-[rgba(22,21,21,0.95)] to-[rgba(30,30,30,0.95)]"
+          :class="showLiveScreen ? 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'border-[#5fbfbb] hover:shadow-[0_0_15px_rgba(95,191,187,0.3)]'"
+        >
+          
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent to-[rgba(95,191,187,0.05)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          
+          
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300 text-[#5fbfbb]">
+             {{ showLiveScreen ? '⏸' : '▶' }}
+          </div>
+          
+          
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase tracking-wider text-center group-hover:text-white transition-colors">
+            Web Honeypot
+          </h3>
+          <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest group-hover:text-gray-400 transition-colors">
+            {{ showLiveScreen ? 'Pause Feed' : 'Start Feed' }}
+          </p>
         </div>
 
       </div>
