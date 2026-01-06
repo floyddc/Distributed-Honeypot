@@ -85,30 +85,22 @@ const closeReportModal = () => {
 
 <template>
   <DashboardLayout>
-    <div class="mb-4">
-      <h2 class="text-xl font-bold text-[#5fbfbb]">Overview</h2>
-    </div>
-
     <div class="grid grid-cols-1 gap-4 mb-6">
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         <!-- Total Attacks -->
-        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb]">
-          <div class="flex items-center justify-between mb-1">
-            <h3 class="text-[#5fbfbb] text-xs font-medium uppercase">Total Attacks</h3>
-            <button 
-              v-if="isAdmin"
-              @click="clearAttacks"
-              class="px-2 py-0.5 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
-              title="Clear all attacks from database"
-            >
-              CLEAR
-            </button>
-          </div>
-          <div class="mt-1">
-            <p class="text-2xl font-bold text-gray-100">{{ socketStore.attacks.length }}</p>
-          </div>
+        <div class="bg-[rgba(22,21,21,0.9)] p-4 rounded-lg shadow-sm border border-[#5fbfbb] flex flex-col items-center justify-center relative">
+          <button 
+            v-if="isAdmin"
+            @click="clearAttacks"
+            class="absolute top-2 right-2 px-2 py-0.5 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
+            title="Clear all attacks from database"
+          >
+            CLEAR
+          </button>
+          <h3 class="text-[#5fbfbb] text-xs font-medium uppercase mb-2">Total Attacks</h3>
+          <p class="text-3xl font-bold text-gray-100">{{ socketStore.attacks.length }}</p>
         </div>
 
         <!-- Active Honeypots -->
@@ -119,40 +111,35 @@ const closeReportModal = () => {
           </div>
           
           <div class="flex-1 overflow-y-auto pr-1 min-h-[100px]">
-            <div v-if="onlineHoneypotsList.length > 0" class="grid grid-cols-3 gap-2">
+            <div v-if="onlineHoneypotsList.length > 0" class="space-y-2">
               <div 
                 v-for="hp in onlineHoneypotsList" 
                 :key="hp.honeypotId" 
                 @click="!isAdmin && openReportModal(hp.honeypotId, hp.port)"
-                class="group relative flex flex-col items-center justify-center p-1.5 rounded border border-[rgba(95,191,187,0.3)] bg-[rgba(95,191,187,0.05)] hover:bg-[rgba(95,191,187,0.15)] hover:border-[#5fbfbb] transition-all cursor-pointer aspect-square"
+                class="group relative flex items-center gap-3 p-2 rounded border border-[rgba(95,191,187,0.3)] bg-[rgba(95,191,187,0.05)] hover:bg-[rgba(95,191,187,0.15)] hover:border-[#5fbfbb] transition-all cursor-pointer"
                 :class="{'opacity-50 cursor-not-allowed': isAdmin}"
                 title="Click to Report"
               >
-                <!-- Status Dot (Top Left) -->
-                <div class="absolute top-1 left-1">
-                   <span class="block w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e] animate-pulse"></span>
-                </div>
-
-                <!-- Report Icon (Top Right) -->
-                <div v-if="!isAdmin" class="absolute top-1 right-1 text-[10px] text-gray-500 group-hover:text-red-400 transition-colors">
-                   🏳️
-                </div>
-
-                <!-- Main Icon -->
-                <div class="mb-1 text-lg opacity-70 group-hover:scale-110 transition-transform">
-                  🕸️
+                <!-- Status Dot -->
+                <div class="flex-shrink-0">
+                   <span class="block w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e] animate-pulse"></span>
                 </div>
 
                 <!-- Info -->
-                <div class="text-center w-full overflow-hidden leading-tight">
-                  <div class="text-[9px] text-gray-400 uppercase tracking-tighter truncate font-mono w-full">{{ hp.honeypotId }}</div>
-                  <div class="text-[10px] font-bold text-[#5fbfbb] font-mono">:{{ hp.port }}</div>
+                <div class="flex-1 flex items-center gap-2 overflow-hidden">
+                  <div class="text-sm text-gray-400 uppercase tracking-tight truncate font-mono">{{ hp.honeypotId }}</div>
+                  <div class="text-base font-bold text-[#5fbfbb] font-mono">:{{ hp.port }}</div>
+                </div>
+
+                <!-- Report Icon -->
+                <div v-if="!isAdmin" class="flex-shrink-0 text-sm text-gray-500 group-hover:text-red-400 transition-colors">
+                   🚩
                 </div>
               </div>
             </div>
-            <div v-else class="flex flex-col items-center justify-center h-full text-gray-500 italic space-y-2">
-              <span class="text-xl opacity-20">🚫</span>
-              <span class="text-[10px]">No active nodes</span>
+            <div v-else class="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+              <span class="text-xl opacity-20">❌</span>
+              <span class="text-sm">No active nodes</span>
             </div>
           </div>
         </div>
@@ -173,10 +160,10 @@ const closeReportModal = () => {
           
       
           <h3 class="text-[#5fbfbb] text-xs font-medium uppercase tracking-wider text-center group-hover:text-white transition-colors">
-            SSH Terminal
+            SSH Honeypot
           </h3>
           <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest group-hover:text-gray-400 transition-colors">
-            {{ showTerminal ? 'Pause Feed' : 'Start Feed' }}
+            {{ showTerminal ? 'Close Live SSH Terminal' : 'Open Live SSH Terminal' }}
           </p>
         </div>
 
@@ -196,10 +183,10 @@ const closeReportModal = () => {
           
           
           <h3 class="text-[#5fbfbb] text-xs font-medium uppercase tracking-wider text-center group-hover:text-white transition-colors">
-            Web Honeypot
+            Login Honeypot
           </h3>
           <p class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest group-hover:text-gray-400 transition-colors">
-            {{ showLiveScreen ? 'Pause Feed' : 'Start Feed' }}
+            {{ showLiveScreen ? 'Close Live Login Screen' : 'Open Live Login Screen' }}
           </p>
         </div>
 

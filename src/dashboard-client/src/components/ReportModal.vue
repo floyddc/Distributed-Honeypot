@@ -40,7 +40,6 @@ User Comment:
     return `Reporting issue for Honeypot Node:
 - Node ID: ${targetId}
 - Port: ${targetPort}
-
 Description of the issue:
 `
   }
