@@ -57,15 +57,17 @@ const closeModal = () => {
   selectedLocation.value = null
 }
 
-const openReportModal = (honeypotId, port) => {
-  selectedHoneypot.value = { honeypotId, port }
+const selectedAttack = ref(null)
+
+const openReportModal = (attack) => {
+  selectedAttack.value = attack
   showReportModal.value = true
 }
 
 const closeReportModal = () => {
   showReportModal.value = false
+  selectedAttack.value = null
 }
-
 const openIpLookupModal = (ip) => {
   selectedIp.value = ip
   showIpLookupModal.value = true
@@ -113,7 +115,7 @@ const closeIpLookupModal = () => {
               <!-- Button for users -->
               <button 
                 v-if="authStore.user?.role !== 'admin'"
-                @click="openReportModal(attack.honeypotId, attack.port)"
+                @click="openReportModal(attack)"
                 class="inline-flex items-center gap-2 px-3 py-1.5 bg-[#7fd9d5] hover:bg-orange-800 rounded transition-colors"
                 title="Report as faulty"
               >
@@ -169,8 +171,7 @@ const closeIpLookupModal = () => {
     />
     <ReportModal
       v-if="showReportModal"
-      :honeypotId="selectedHoneypot.honeypotId"
-      :port="selectedHoneypot.port"
+      :attack="selectedAttack"
       @close="closeReportModal"
     />
   </div>

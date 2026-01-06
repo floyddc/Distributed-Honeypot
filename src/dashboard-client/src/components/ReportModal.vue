@@ -4,14 +4,49 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from 'vue-toastification'
 
 const props = defineProps({
-  honeypotId: String,
-  port: [String, Number]
+  attack: {
+    type: Object,
+    default: null
+  },
+  honeypotId: {
+    type: String,
+    default: ''
+  },
+  port: {
+    type: [String, Number],
+    default: ''
+  }
 })
 
 const emit = defineEmits(['close'])
 const toast = useToast()
 const authStore = useAuthStore()
-const comment = ref('')
+
+const targetId = props.attack?.honeypotId || props.honeypotId
+const targetPort = props.attack?.port || props.port
+
+// Prepopulate the comment
+const generateInitialComment = () => {
+  if (props.attack) {
+    return `Reporting suspicious activity:
+- Time: ${new Date(props.attack.timestamp).toLocaleString()}
+- Source IP: ${props.attack.sourceIp}
+- Severity: ${props.attack.severity || 'Unknown'}
+- Note: ${props.attack.description || 'No description'}
+
+User Comment:
+`
+  } else {
+    return `Reporting issue for Honeypot Node:
+- Node ID: ${targetId}
+- Port: ${targetPort}
+
+Description of the issue:
+`
+  }
+}
+
+const comment = ref(generateInitialComment())
 const isSubmitting = ref(false)
 
 const handleSubmit = async () => {
@@ -30,8 +65,8 @@ const handleSubmit = async () => {
         'Authorization': `Bearer ${authStore.token}`
       },
       body: JSON.stringify({
-        honeypotId: props.honeypotId,
-        port: props.port,
+        honeypotId: targetId,
+        port: targetPort,
         message: comment.value
       })
     })
@@ -74,7 +109,7 @@ const handleSubmit = async () => {
       <div class="mb-4 p-3 bg-[rgba(95,191,187,0.1)] rounded border border-[rgba(95,191,187,0.3)]">
         <p class="text-sm text-gray-300">
           <span class="font-semibold text-[#5fbfbb]">Honeypot:</span> 
-          <span class="font-mono">{{ honeypotId }}:{{ port }}</span>
+          <span class="font-mono">{{ targetId }}:{{ targetPort }}</span>
         </p>
       </div>
 
